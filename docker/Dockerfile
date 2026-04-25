@@ -56,6 +56,8 @@ FROM node:20-alpine AS migrator
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
+# Make node_modules/.bin (where tsx lives) available so `prisma db seed` can spawn `tsx`.
+ENV PATH="/app/node_modules/.bin:${PATH}"
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
