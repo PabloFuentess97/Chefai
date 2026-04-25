@@ -30,17 +30,23 @@ export async function updateProfileAction(
   formData: FormData
 ): Promise<ActionResult<{ updated: true }>> {
   const user = await requireUser();
+  const goalRaw = formData.get("preferredGoal");
   const parsed = updateProfileSchema.safeParse({
     name: formData.get("name"),
+    preferredGoal: goalRaw && goalRaw !== "" ? goalRaw : null,
   });
   if (!parsed.success) return fromZod(parsed.error);
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { name: parsed.data.name },
+    data: {
+      name: parsed.data.name,
+      preferredGoal: parsed.data.preferredGoal ?? null,
+    },
   });
   revalidatePath("/settings");
   revalidatePath("/dashboard");
+  revalidatePath("/generate");
   return { ok: true, data: { updated: true } };
 }
 

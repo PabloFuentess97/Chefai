@@ -1,19 +1,35 @@
+import Link from "next/link";
+import { ShieldCheck, ArrowRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
+import { LogoutButton } from "@/components/settings/logout-button";
+import type { DietGoal } from "@/lib/diet-goals";
 
-export const metadata = { title: "Ajustes" };
+export const metadata = { title: "Tu cuenta" };
 
 export default async function SettingsPage() {
-  const user = await requireUser();
+  const session = await requireUser();
+  const user = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: { name: true, email: true, role: true, preferredGoal: true },
+  });
+  if (!user) return null;
+
+  const isAdmin = user.role === "ADMIN";
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Ajustes
+          Tu cuenta
         </h1>
-        <p className="text-muted-foreground">Tu cuenta y tu seguridad.</p>
+        <p className="text-muted-foreground">
+          Edita tu perfil, tu objetivo nutricional y gestiona tu sesión.
+        </p>
       </div>
 
       <Card>
@@ -21,7 +37,11 @@ export default async function SettingsPage() {
           <CardTitle>Perfil</CardTitle>
         </CardHeader>
         <CardContent>
-          <ProfileForm defaultName={user.name} email={user.email} />
+          <ProfileForm
+            defaultName={user.name}
+            email={user.email}
+            defaultGoal={(user.preferredGoal as DietGoal | null) ?? null}
+          />
         </CardContent>
       </Card>
 
@@ -31,6 +51,39 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <PasswordForm />
+        </CardContent>
+      </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="size-5 text-primary" />
+              Administración
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Gestiona planes, usuarios y branding desde el panel.
+            </p>
+            <Button variant="outline" render={<Link href="/admin" />}>
+              Abrir panel admin
+              <ArrowRight className="size-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sesión</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            Cierra sesión en este dispositivo. Tendrás que volver a iniciar
+            sesión la próxima vez.
+          </p>
+          <LogoutButton />
         </CardContent>
       </Card>
     </div>

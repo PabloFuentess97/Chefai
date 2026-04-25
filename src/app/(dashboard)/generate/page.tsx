@@ -1,19 +1,25 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getCurrentPlan } from "@/lib/plans";
 import { getUsage } from "@/lib/usage";
 import { Card, CardContent } from "@/components/ui/card";
-import { GenerateForm } from "@/components/dashboard/generate-form";
+import { GenerateWizard } from "@/components/dashboard/generate-wizard";
 import { UsageMeter } from "@/components/dashboard/usage-meter";
+import type { DietGoal } from "@/lib/diet-goals";
 
 export const metadata = { title: "Generar receta" };
 
 export default async function GeneratePage() {
-  const user = await requireUser();
-  const [plan, usage] = await Promise.all([
-    getCurrentPlan(user.id),
-    getUsage(user.id),
+  const session = await requireUser();
+  const [plan, usage, user] = await Promise.all([
+    getCurrentPlan(session.id),
+    getUsage(session.id),
+    prisma.user.findUnique({
+      where: { id: session.id },
+      select: { preferredGoal: true },
+    }),
   ]);
 
   const limited =
@@ -26,16 +32,13 @@ export default async function GeneratePage() {
           Generar nuevas recetas
         </h1>
         <p className="text-muted-foreground">
-          Cuéntanos qué tienes y nosotros nos encargamos de la inspiración.
+          Cuatro pasos rápidos y la IA cocina por ti.
         </p>
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          <UsageMeter
-            used={usage.recipesUsed}
-            limit={plan.recipesPerMonth}
-          />
+          <UsageMeter used={usage.recipesUsed} limit={plan.recipesPerMonth} />
           {limited && (
             <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 p-3 text-sm">
               <p className="font-medium">Has alcanzado tu límite mensual</p>
@@ -55,7 +58,9 @@ export default async function GeneratePage() {
 
       <Card>
         <CardContent className="pt-6">
-          <GenerateForm />
+          <GenerateWizard
+            defaultGoal={(user?.preferredGoal as DietGoal | null) ?? null}
+          />
         </CardContent>
       </Card>
     </div>

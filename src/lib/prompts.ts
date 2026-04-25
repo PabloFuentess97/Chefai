@@ -1,5 +1,11 @@
 import { z } from "zod";
 import type { GenerateRecipesInput } from "./validators";
+import {
+  getMeal,
+  getGoal,
+  targetCaloriesForMeal,
+  proteinMinForGoal,
+} from "./diet-goals";
 
 export const recipesResponseSchema = z.object({
   recipes: z
@@ -61,10 +67,28 @@ Reglas estrictas (en orden de prioridad):
 6. Genera al menos 3 recetas DIFERENTES entre sí (técnicas o sabores distintos).
 7. Las instrucciones (steps) deben ser claras, en imperativo, numeradas implícitamente por orden, sin omitir pasos críticos (precalentar, salpimentar, reposar).
 8. Unidades métricas: g, ml, ud (unidad), cda (cucharada), cdta (cucharadita).
-9. Si no es posible generar una receta razonable con las restricciones, devuelve un objeto en "recipes" con error: { code: "NOT_FEASIBLE", message: "..." } — NO inventes recetas no cocinables.`;
+9. Si se indica TIPO DE COMIDA, todas las recetas DEBEN ser apropiadas para ese momento del día. Por ejemplo, una "cena" no es un brownie, un "desayuno" no es solomillo.
+10. Si se indica OBJETIVO NUTRICIONAL con un rango de calorías y un mínimo de proteína por ración, respétalos con prioridad alta. Ajusta CANTIDADES (no inventes ingredientes nuevos) para encajar el rango. Si imposible, prioriza la proteína mínima sobre el límite calórico superior.
+11. Si no es posible generar una receta razonable con las restricciones, devuelve un objeto en "recipes" con error: { code: "NOT_FEASIBLE", message: "..." } — NO inventes recetas no cocinables.`;
 
 export function buildUserPrompt(input: GenerateRecipesInput): string {
+  const meal = getMeal(input.mealType);
+  const goal = getGoal(input.goal);
+  const calRange = targetCaloriesForMeal(input.mealType, input.goal);
+  const proteinMin = proteinMinForGoal(input.goal);
+
+  const mealLine = meal
+    ? `TIPO DE COMIDA: ${meal.label} (${meal.desc}). La receta DEBE ser específicamente apropiada para ${meal.label.toLowerCase()} en sabor, presentación y textura.`
+    : `TIPO DE COMIDA: cualquiera`;
+
+  const goalLine = goal
+    ? `OBJETIVO NUTRICIONAL: ${goal.label} — ${goal.desc}. Calcula las cantidades para que cada ración tenga ENTRE ${calRange?.min ?? "—"} Y ${calRange?.max ?? "—"} kcal y AL MENOS ${proteinMin}g de proteína. Es prioritario respetar este rango.`
+    : `OBJETIVO NUTRICIONAL: equilibrado, sin restricción específica`;
+
   return `Genera recetas con estos parámetros:
+
+${mealLine}
+${goalLine}
 
 INGREDIENTES DISPONIBLES: ${JSON.stringify(input.ingredients)}
 INGREDIENTES PROHIBIDOS (alergias/intolerancias): ${JSON.stringify(input.forbidden ?? [])}

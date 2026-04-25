@@ -73,6 +73,8 @@ export async function generateRecipesAction(
     servings: formData.get("servings"),
     cuisine: formData.get("cuisine") || undefined,
     difficulty: formData.get("difficulty") || undefined,
+    mealType: formData.get("mealType") || undefined,
+    goal: formData.get("goal") || undefined,
   });
   if (!parsed.success) return fromZod(parsed.error);
 

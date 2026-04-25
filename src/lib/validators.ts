@@ -56,6 +56,12 @@ export const generateRecipesInput = z.object({
   servings: z.coerce.number().int().min(1).max(20),
   cuisine: z.string().trim().max(40).optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  mealType: z
+    .enum(["breakfast", "lunch", "snack", "dinner"])
+    .optional(),
+  goal: z
+    .enum(["deficit", "maintain", "volume", "definition", "muscle"])
+    .optional(),
 });
 
 export type GenerateRecipesInput = z.infer<typeof generateRecipesInput>;
@@ -64,6 +70,10 @@ export type GenerateRecipesInput = z.infer<typeof generateRecipesInput>;
 
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1).max(80),
+  preferredGoal: z
+    .enum(["deficit", "maintain", "volume", "definition", "muscle"])
+    .optional()
+    .nullable(),
 });
 
 // ---------- Admin ----------

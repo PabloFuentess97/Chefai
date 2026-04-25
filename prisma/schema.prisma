@@ -27,6 +27,7 @@ model User {
   verifyToken     String?         @unique
   resetToken      String?         @unique
   resetTokenExp   DateTime?
+  preferredGoal   String?         // diet goal default: deficit | maintain | volume | definition | muscle
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
