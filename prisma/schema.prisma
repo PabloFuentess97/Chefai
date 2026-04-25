@@ -1,0 +1,276 @@
+// Prisma schema — ChefAI
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- AUTH ----------
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id              String          @id @default(cuid())
+  email           String          @unique
+  passwordHash    String
+  name            String?
+  role            Role            @default(USER)
+  emailVerifiedAt DateTime?
+  verifyToken     String?         @unique
+  resetToken      String?         @unique
+  resetTokenExp   DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  sessions     Session[]
+  subscription Subscription?
+  recipes      Recipe[]
+  history      RecipeHistory[]
+  usage        UsageCounter[]
+  payments     Payment[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------- BILLING ----------
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  MANUAL
+}
+
+model Plan {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  description     String?
+  priceCents      Int
+  currency        String          @default("EUR")
+  interval        BillingInterval @default(MONTH)
+  recipesPerMonth Int
+  imagesEnabled   Boolean         @default(false)
+  imageQuality    String          @default("low")
+  pdfExport       Boolean         @default(false)
+  shoppingList    Boolean         @default(false)
+  weeklyPlanner   Boolean         @default(false)
+  prioritySupport Boolean         @default(false)
+  stripePriceId   String?
+  paypalPlanId    String?
+  isActive        Boolean         @default(true)
+  isPublic        Boolean         @default(true)
+  sortOrder       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([slug])
+  @@index([isActive, isPublic])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  planId               String
+  provider             PaymentProvider
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?            @unique
+  stripeCustomerId     String?
+  paypalSubscriptionId String?            @unique
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  userId      String
+  provider    PaymentProvider
+  externalId  String
+  amountCents Int
+  currency    String          @default("EUR")
+  status      String
+  rawPayload  Json?
+  createdAt   DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ---------- RECIPES ----------
+
+enum RecipeSource {
+  AI_GENERATED
+  USER_SAVED
+}
+
+model Recipe {
+  id               String       @id @default(cuid())
+  userId           String
+  source           RecipeSource @default(AI_GENERATED)
+  title            String
+  description      String?
+  servings         Int
+  prepMinutes      Int?
+  cookMinutes      Int?
+  difficulty       String?
+  cuisine          String?
+  imageUrl         String?
+  imageStoragePath String?
+  totalCalories    Float?
+  totalProteins    Float?
+  totalFats        Float?
+  totalCarbs       Float?
+  promptHash       String?
+  isFavorite       Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredients RecipeIngredient[]
+  steps       RecipeStep[]
+  history     RecipeHistory[]
+
+  @@index([userId, createdAt])
+  @@index([promptHash])
+}
+
+model RecipeIngredient {
+  id        String  @id @default(cuid())
+  recipeId  String
+  name      String
+  quantity  Float
+  unit      String
+  optional  Boolean @default(false)
+  suggested Boolean @default(false)
+  calories  Float?
+  proteins  Float?
+  fats      Float?
+  carbs     Float?
+  sortOrder Int     @default(0)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
+}
+
+model RecipeStep {
+  id          String @id @default(cuid())
+  recipeId    String
+  order       Int
+  content     String @db.Text
+  durationMin Int?
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, order])
+  @@index([recipeId])
+}
+
+model RecipeHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  recipeId     String
+  promptInputs Json
+  tokensUsed   Int?
+  costCents    Int?
+  createdAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ---------- USAGE / LIMITS ----------
+
+model UsageCounter {
+  id          String   @id @default(cuid())
+  userId      String
+  periodKey   String
+  recipesUsed Int      @default(0)
+  imagesUsed  Int      @default(0)
+  tokensUsed  Int      @default(0)
+  costCents   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodKey])
+  @@index([periodKey])
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int      @default(0)
+  windowEnd DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([windowEnd])
+}
+
+// ---------- SETTINGS (BRANDING + GLOBAL) ----------
+
+model Settings {
+  id           Int      @id @default(1)
+  brandName    String   @default("ChefAI")
+  brandTagline String?
+  brandLogoUrl String?
+  brandColor   String   @default("#16a34a")
+  supportEmail String   @default("hola@chefai.app")
+  termsUrl     String?
+  privacyUrl   String?
+  updatedAt    DateTime @updatedAt
+}

@@ -1,0 +1,120 @@
+import { z } from "zod";
+import type { GenerateRecipesInput } from "./validators";
+
+export const recipesResponseSchema = z.object({
+  recipes: z
+    .array(
+      z.object({
+        title: z.string().min(2),
+        description: z.string(),
+        cuisine: z.string().nullable().optional(),
+        difficulty: z.enum(["easy", "medium", "hard"]),
+        prepMinutes: z.number().int().min(0),
+        cookMinutes: z.number().int().min(0),
+        servings: z.number().int().min(1),
+        imagePrompt: z.string(),
+        ingredients: z
+          .array(
+            z.object({
+              name: z.string(),
+              quantity: z.number().nonnegative(),
+              unit: z.string(),
+              optional: z.boolean(),
+              suggested: z.boolean(),
+              calories: z.number().nonnegative(),
+              proteins: z.number().nonnegative(),
+              fats: z.number().nonnegative(),
+              carbs: z.number().nonnegative(),
+            })
+          )
+          .min(1),
+        perServing: z.object({
+          calories: z.number().nonnegative(),
+          proteins: z.number().nonnegative(),
+          fats: z.number().nonnegative(),
+          carbs: z.number().nonnegative(),
+        }),
+        steps: z
+          .array(
+            z.object({
+              order: z.number().int().min(1),
+              content: z.string().min(2),
+              durationMin: z.number().int().nonnegative().nullable(),
+            })
+          )
+          .min(2),
+      })
+    )
+    .min(1),
+});
+
+export type RecipesResponse = z.infer<typeof recipesResponseSchema>;
+
+export const SYSTEM_PROMPT = `Eres un chef profesional con formación en nutrición. Generas recetas en español, realistas, sabrosas y cocinables en una cocina doméstica estándar (horno, fogones, microondas, batidora). Respondes EXCLUSIVAMENTE con un JSON válido que cumpla el esquema indicado por el usuario, sin texto extra, sin markdown, sin explicaciones.
+
+Reglas estrictas (en orden de prioridad):
+1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias/intolerancias). Esto es una cuestión de seguridad alimentaria.
+2. EVITA los ingredientes listados en "unwanted" salvo que sean absolutamente imprescindibles; en ese caso, usa una alternativa equivalente.
+3. Usa principalmente los ingredientes en "available". Puedes sugerir hasta 3 ingredientes adicionales por receta marcándolos como "suggested": true (sal, aceite, especias comunes no cuentan).
+4. Ajusta TODAS las cantidades para el número exacto de "servings" indicado.
+5. Los valores nutricionales deben ser realistas y proporcionales (calorías por gramo coherentes con el ingrediente). Calorías y macros se expresan POR RACIÓN para los totales y POR LA CANTIDAD INDICADA para cada ingrediente.
+6. Genera al menos 3 recetas DIFERENTES entre sí (técnicas o sabores distintos).
+7. Las instrucciones (steps) deben ser claras, en imperativo, numeradas implícitamente por orden, sin omitir pasos críticos (precalentar, salpimentar, reposar).
+8. Unidades métricas: g, ml, ud (unidad), cda (cucharada), cdta (cucharadita).
+9. Si no es posible generar una receta razonable con las restricciones, devuelve un objeto en "recipes" con error: { code: "NOT_FEASIBLE", message: "..." } — NO inventes recetas no cocinables.`;
+
+export function buildUserPrompt(input: GenerateRecipesInput): string {
+  return `Genera recetas con estos parámetros:
+
+INGREDIENTES DISPONIBLES: ${JSON.stringify(input.ingredients)}
+INGREDIENTES PROHIBIDOS (alergias/intolerancias): ${JSON.stringify(input.forbidden ?? [])}
+INGREDIENTES NO DESEADOS: ${JSON.stringify(input.unwanted ?? [])}
+COMENSALES: ${input.servings}
+COCINA (opcional): ${input.cuisine ?? "any"}
+DIFICULTAD (opcional): ${input.difficulty ?? "any"}
+
+Devuelve estrictamente este JSON:
+{
+  "recipes": [
+    {
+      "title": "string",
+      "description": "string corta (1-2 frases)",
+      "cuisine": "string|null",
+      "difficulty": "easy|medium|hard",
+      "prepMinutes": number,
+      "cookMinutes": number,
+      "servings": ${input.servings},
+      "imagePrompt": "Prompt en INGLÉS, descriptivo, fotográfico, ~30 palabras, para generar una foto cenital realista del plato terminado",
+      "ingredients": [
+        {
+          "name": "string",
+          "quantity": number,
+          "unit": "g|ml|ud|cda|cdta",
+          "optional": boolean,
+          "suggested": boolean,
+          "calories": number,
+          "proteins": number,
+          "fats": number,
+          "carbs": number
+        }
+      ],
+      "perServing": {
+        "calories": number,
+        "proteins": number,
+        "fats": number,
+        "carbs": number
+      },
+      "steps": [
+        { "order": 1, "content": "string", "durationMin": number|null }
+      ]
+    }
+  ]
+}`;
+}
+
+export const IMAGE_PROMPT_PREFIX =
+  "Professional overhead food photography, natural daylight, shallow depth of field, rustic plating, no text, no watermarks. Subject:";
+
+export function buildImagePrompt(recipeImagePrompt: string): string {
+  return `${IMAGE_PROMPT_PREFIX} ${recipeImagePrompt}`;
+}
