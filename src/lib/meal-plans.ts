@@ -64,14 +64,13 @@ async function findReusableRecipe(input: SlotInput): Promise<string | null> {
     ? { cuisine: { equals: cuisine, mode: "insensitive" as const } }
     : {};
 
+  // If a cuisine is specified, ALL fallback levels keep that cuisine filter.
+  // Better to generate fresh via AI than serve a wrong-cuisine reuse.
   const conditions = cuisine
     ? [
         { mealType, ...cuisineWhere, goal: input.goal ?? undefined, difficulty: input.difficulty ?? undefined },
         { mealType, ...cuisineWhere, goal: input.goal ?? undefined },
         { mealType, ...cuisineWhere },
-        // Final fall-back: no cuisine match available
-        { mealType, goal: input.goal ?? undefined },
-        { mealType },
       ]
     : [
         { mealType, goal: input.goal ?? undefined, difficulty: input.difficulty ?? undefined },
