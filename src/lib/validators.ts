@@ -120,3 +120,14 @@ export const setUserRoleSchema = z.object({
   userId: z.string().min(1),
   role: z.enum(["USER", "ADMIN"]),
 });
+
+export const updateUserNameSchema = z.object({
+  userId: z.string().min(1),
+  name: z.string().trim().min(1).max(80),
+});
+
+export const setUserPlanSchema = z.object({
+  userId: z.string().min(1),
+  planSlug: z.string().trim().min(1).max(40),
+  periodMonths: z.coerce.number().int().min(1).max(120).default(12),
+});

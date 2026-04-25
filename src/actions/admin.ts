@@ -12,7 +12,10 @@ import {
   upsertPlanSchema,
   updateSettingsSchema,
   setUserRoleSchema,
+  updateUserNameSchema,
+  setUserPlanSchema,
 } from "@/lib/validators";
+import { getPlanBySlug } from "@/lib/plans";
 import { env } from "@/env";
 import type { ActionResult } from "@/types/session";
 
@@ -178,5 +181,102 @@ export async function setUserRoleAction(
     data: { role: parsed.data.role },
   });
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${parsed.data.userId}`);
   return { ok: true, data: { updated: true } };
+}
+
+export async function updateUserNameAction(
+  _prev: ActionResult<{ updated: true }> | null,
+  formData: FormData
+): Promise<ActionResult<{ updated: true }>> {
+  await requireAdmin();
+  const parsed = updateUserNameSchema.safeParse({
+    userId: formData.get("userId"),
+    name: formData.get("name"),
+  });
+  if (!parsed.success) return fromZod(parsed.error);
+
+  await prisma.user.update({
+    where: { id: parsed.data.userId },
+    data: { name: parsed.data.name },
+  });
+  revalidatePath(`/admin/users/${parsed.data.userId}`);
+  return { ok: true, data: { updated: true } };
+}
+
+export async function setUserPlanAction(
+  _prev: ActionResult<{ planSlug: string }> | null,
+  formData: FormData
+): Promise<ActionResult<{ planSlug: string }>> {
+  await requireAdmin();
+  const parsed = setUserPlanSchema.safeParse({
+    userId: formData.get("userId"),
+    planSlug: formData.get("planSlug"),
+    periodMonths: formData.get("periodMonths") ?? 12,
+  });
+  if (!parsed.success) return fromZod(parsed.error);
+
+  const { userId, planSlug, periodMonths } = parsed.data;
+  const plan = await getPlanBySlug(planSlug);
+  if (!plan) return fail("PLAN_NOT_FOUND", "Plan no encontrado");
+
+  if (plan.slug === "free") {
+    // Removing the subscription returns the user to the implicit free plan
+    await prisma.subscription
+      .deleteMany({ where: { userId } })
+      .catch(() => undefined);
+  } else {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + periodMonths);
+
+    await prisma.subscription.upsert({
+      where: { userId },
+      create: {
+        userId,
+        planId: plan.id,
+        provider: "MANUAL",
+        status: "ACTIVE",
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      },
+      update: {
+        planId: plan.id,
+        provider: "MANUAL",
+        status: "ACTIVE",
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        cancelAtPeriodEnd: false,
+        canceledAt: null,
+      },
+    });
+  }
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/users");
+  revalidatePath("/admin");
+  return { ok: true, data: { planSlug: plan.slug } };
+}
+
+export async function cancelUserSubscriptionAction(
+  userId: string
+): Promise<ActionResult<{ canceled: true }>> {
+  await requireAdmin();
+  if (!userId) return fail("VALIDATION", "userId requerido");
+
+  const sub = await prisma.subscription.findUnique({ where: { userId } });
+  if (!sub) return fail("NO_SUBSCRIPTION", "El usuario no tiene suscripción");
+
+  await prisma.subscription.update({
+    where: { id: sub.id },
+    data: {
+      status: "CANCELED",
+      cancelAtPeriodEnd: true,
+      canceledAt: new Date(),
+    },
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/users");
+  return { ok: true, data: { canceled: true } };
 }

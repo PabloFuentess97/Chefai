@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UsersTable } from "@/components/admin/users-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FREE_PLAN_SLUG } from "@/lib/plans";
 
 export const metadata = { title: "Admin · Usuarios" };
 
@@ -24,23 +25,36 @@ export default async function AdminUsersPage({ searchParams }: Props) {
       }
     : {};
 
-  const [users, total] = await Promise.all([
+  const [usersRaw, total, freePlan] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip: (pageNum - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        emailVerifiedAt: true,
+      include: {
+        subscription: { include: { plan: true } },
       },
     }),
     prisma.user.count({ where }),
+    prisma.plan.findUnique({ where: { slug: FREE_PLAN_SLUG } }),
   ]);
+
+  const users = usersRaw.map((u) => {
+    const sub = u.subscription;
+    const isActive =
+      sub &&
+      (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
+      sub.currentPeriodEnd > new Date();
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      createdAt: u.createdAt,
+      emailVerifiedAt: u.emailVerifiedAt,
+      planName: isActive && sub ? sub.plan.name : (freePlan?.name ?? "Free"),
+    };
+  });
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -50,9 +64,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           Usuarios
         </h1>
-        <p className="text-muted-foreground">
-          {total} usuarios en total.
-        </p>
+        <p className="text-muted-foreground">{total} usuarios en total.</p>
       </div>
 
       <form className="flex gap-2 max-w-md">

@@ -1,17 +1,9 @@
 "use client";
 
-import * as React from "react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Role } from "@prisma/client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { setUserRoleAction } from "@/actions/admin";
+import { Badge } from "@/components/ui/badge";
 
 type Row = {
   id: string;
@@ -29,66 +21,69 @@ type Row = {
   role: Role;
   createdAt: Date;
   emailVerifiedAt: Date | null;
+  planName: string;
 };
 
+const dateFmt = new Intl.DateTimeFormat("es-ES");
+
 export function UsersTable({ users }: { users: Row[] }) {
-  const router = useRouter();
-
-  function changeRole(userId: string, role: Role) {
-    const fd = new FormData();
-    fd.set("userId", userId);
-    fd.set("role", role);
-    setUserRoleAction(null, fd).then((res) => {
-      if (!res.ok) {
-        toast.error(res.error.message);
-        return;
-      }
-      toast.success("Rol actualizado");
-      router.refresh();
-    });
-  }
-
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Email</TableHead>
-          <TableHead>Nombre</TableHead>
-          <TableHead>Verificado</TableHead>
-          <TableHead>Alta</TableHead>
-          <TableHead className="text-right">Rol</TableHead>
+          <TableHead>Usuario</TableHead>
+          <TableHead className="hidden sm:table-cell">Plan</TableHead>
+          <TableHead className="hidden md:table-cell">Rol</TableHead>
+          <TableHead className="hidden md:table-cell">Verificado</TableHead>
+          <TableHead className="hidden lg:table-cell">Alta</TableHead>
+          <TableHead className="text-right" />
         </TableRow>
       </TableHeader>
       <TableBody>
         {users.map((u) => (
-          <TableRow key={u.id}>
-            <TableCell className="font-medium truncate max-w-[260px]">
-              {u.email}
+          <TableRow
+            key={u.id}
+            className="cursor-pointer hover:bg-muted/40"
+          >
+            <TableCell className="font-medium">
+              <Link href={`/admin/users/${u.id}`} className="block">
+                <div className="flex flex-col gap-0.5">
+                  <span className="truncate max-w-[260px]">{u.email}</span>
+                  {u.name && (
+                    <span className="text-xs text-muted-foreground truncate max-w-[260px]">
+                      {u.name}
+                    </span>
+                  )}
+                </div>
+              </Link>
             </TableCell>
-            <TableCell>{u.name ?? "—"}</TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
+              <Badge variant="outline">{u.planName}</Badge>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <Badge variant={u.role === "ADMIN" ? "default" : "outline"}>
+                {u.role}
+              </Badge>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
               {u.emailVerifiedAt ? (
-                <span className="text-primary">Sí</span>
+                <span className="text-primary text-sm">Sí</span>
               ) : (
-                <span className="text-muted-foreground">No</span>
+                <span className="text-muted-foreground text-sm">No</span>
               )}
             </TableCell>
-            <TableCell>
-              {new Intl.DateTimeFormat("es-ES").format(u.createdAt)}
+            <TableCell className="hidden lg:table-cell text-sm">
+              {dateFmt.format(u.createdAt)}
             </TableCell>
             <TableCell className="text-right">
-              <Select
-                value={u.role}
-                onValueChange={(v) => v && changeRole(u.id, v as Role)}
+              <Link
+                href={`/admin/users/${u.id}`}
+                className="inline-flex items-center gap-1 text-primary text-sm hover:underline"
+                aria-label={`Editar ${u.email}`}
               >
-                <SelectTrigger className="w-32 ml-auto">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USER">USER</SelectItem>
-                  <SelectItem value="ADMIN">ADMIN</SelectItem>
-                </SelectContent>
-              </Select>
+                Editar
+                <ArrowRight className="size-3.5" />
+              </Link>
             </TableCell>
           </TableRow>
         ))}
