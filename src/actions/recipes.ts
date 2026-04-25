@@ -151,6 +151,8 @@ export async function generateRecipesAction(
         totalFats: r.perServing.fats,
         totalCarbs: r.perServing.carbs,
         promptHash: hash,
+        mealType: parsed.data.mealType ?? null,
+        goal: parsed.data.goal ?? null,
         ingredients: {
           create: r.ingredients.map((ing, i) => ({
             name: ing.name,

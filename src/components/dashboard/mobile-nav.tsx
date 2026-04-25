@@ -6,7 +6,7 @@ import {
   Home,
   BookOpen,
   Sparkles,
-  CreditCard,
+  CalendarRange,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +24,7 @@ const TABS: Tab[] = [
   { href: "/dashboard", label: "Inicio", icon: Home },
   { href: "/recipes", label: "Recetas", icon: BookOpen },
   { href: "/generate", label: "Generar", icon: Sparkles, highlight: true },
-  { href: "/billing", label: "Plan", icon: CreditCard },
+  { href: "/planner", label: "Menú", icon: CalendarRange },
   { href: "/settings", label: "Cuenta", icon: User },
 ];
 

@@ -37,6 +37,8 @@ model User {
   history      RecipeHistory[]
   usage        UsageCounter[]
   payments     Payment[]
+  mealPlans    MealPlan[]
+  shoppingList ShoppingListItem[]
 
   @@index([email])
   @@index([createdAt])
@@ -175,16 +177,21 @@ model Recipe {
   totalCarbs       Float?
   promptHash       String?
   isFavorite       Boolean      @default(false)
+  mealType         String?      // breakfast | lunch | snack | dinner — for meal plan reuse
+  goal             String?      // deficit | maintain | volume | definition | muscle
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ingredients RecipeIngredient[]
-  steps       RecipeStep[]
-  history     RecipeHistory[]
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredients     RecipeIngredient[]
+  steps           RecipeStep[]
+  history         RecipeHistory[]
+  mealPlanItems   MealPlanItem[]
+  shoppingItems   ShoppingListItem[]
 
   @@index([userId, createdAt])
   @@index([promptHash])
+  @@index([mealType, goal, difficulty])
 }
 
 model RecipeIngredient {
@@ -270,8 +277,76 @@ model Settings {
   brandTagline String?
   brandLogoUrl String?
   brandColor   String   @default("#16a34a")
-  supportEmail String   @default("hola@chefai.app")
+  supportEmail String   @default("hola@chefai.fit")
   termsUrl     String?
   privacyUrl   String?
   updatedAt    DateTime @updatedAt
+}
+
+// ---------- MEAL PLANS ----------
+
+enum MealPlanType {
+  DAILY
+  WEEKLY
+}
+
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  SNACK
+  DINNER
+}
+
+model MealPlan {
+  id         String       @id @default(cuid())
+  userId     String
+  type       MealPlanType
+  startDate  DateTime
+  goal       String?
+  difficulty String?
+  servings   Int          @default(1)
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items MealPlanItem[]
+
+  @@index([userId, startDate])
+}
+
+model MealPlanItem {
+  id        String   @id @default(cuid())
+  planId    String
+  dayIndex  Int      // 0 for daily plans; 0-6 for weekly (Mon..Sun)
+  slot      MealSlot
+  recipeId  String
+  servings  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  plan   MealPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  recipe Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, dayIndex, slot])
+  @@index([planId])
+  @@index([recipeId])
+}
+
+// ---------- SHOPPING LIST ----------
+
+model ShoppingListItem {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  quantity  Float
+  unit      String
+  recipeId  String?  // optional source recipe
+  isBought  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isBought, createdAt])
 }

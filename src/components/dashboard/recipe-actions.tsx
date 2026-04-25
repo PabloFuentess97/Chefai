@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Trash2, FileDown } from "lucide-react";
+import { Heart, Trash2, FileDown, ShoppingBasket } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toggleFavoriteAction, deleteRecipeAction } from "@/actions/recipes";
+import { addRecipeToShoppingListAction } from "@/actions/shopping";
 
 export function RecipeActions({
   recipeId,
@@ -29,8 +30,24 @@ export function RecipeActions({
   const router = useRouter();
   const [favPending, startFav] = React.useTransition();
   const [delPending, startDel] = React.useTransition();
+  const [shopPending, startShop] = React.useTransition();
   const [open, setOpen] = React.useState(false);
   const [fav, setFav] = React.useState(isFavorite);
+
+  function addToShopping() {
+    startShop(async () => {
+      const res = await addRecipeToShoppingListAction(recipeId);
+      if (!res.ok) {
+        toast.error(res.error.message);
+        return;
+      }
+      toast.success(
+        res.data.added > 0
+          ? `${res.data.added} ingredientes añadidos a la lista`
+          : "Los ingredientes ya estaban en tu lista"
+      );
+    });
+  }
 
   function onToggleFav() {
     startFav(async () => {
@@ -69,6 +86,15 @@ export function RecipeActions({
           className={fav ? "size-4 fill-pink-500 text-pink-500" : "size-4"}
         />
         {fav ? "Favorita" : "Marcar favorita"}
+      </Button>
+
+      <Button
+        variant="outline"
+        onClick={addToShopping}
+        disabled={shopPending}
+      >
+        <ShoppingBasket className="size-4" />
+        {shopPending ? "Añadiendo…" : "A la compra"}
       </Button>
 
       {pdfEnabled ? (

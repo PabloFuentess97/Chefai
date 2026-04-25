@@ -1,0 +1,268 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import type { MealPlanType } from "@prisma/client";
+
+import { prisma } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
+import { getCurrentPlan, planHasFeature } from "@/lib/plans";
+import { getUsage, incrementUsage, currentPeriodKey } from "@/lib/usage";
+import { rateLimit } from "@/lib/rate-limit";
+import {
+  SLOTS,
+  resolveSlot,
+  type MealSlotEnum,
+  type SlotInput,
+} from "@/lib/meal-plans";
+import { logger } from "@/lib/logger";
+import type { ActionResult } from "@/types/session";
+
+const createPlanSchema = z.object({
+  type: z.enum(["DAILY", "WEEKLY"]),
+  startDate: z.string().min(8), // ISO date "YYYY-MM-DD"
+  goal: z
+    .enum(["deficit", "maintain", "volume", "definition", "muscle"])
+    .nullable()
+    .optional(),
+  difficulty: z.enum(["easy", "medium", "hard"]).nullable().optional(),
+  fast: z.coerce.boolean().default(false),
+  servings: z.coerce.number().int().min(1).max(20).default(2),
+  cuisine: z.string().trim().max(40).optional().nullable(),
+  preferences: z.array(z.string().trim().min(1).max(60)).max(30).default([]),
+  forbidden: z.array(z.string().trim().min(1).max(60)).max(30).default([]),
+});
+
+function fail(code: string, message: string): ActionResult<never> {
+  return { ok: false, error: { code, message } };
+}
+
+function fromZod(err: z.ZodError): ActionResult<never> {
+  const first = err.issues[0];
+  return fail("VALIDATION", first?.message ?? "Datos no válidos");
+}
+
+// Limit OpenAI concurrency for weekly plans (28 slots)
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const i = cursor++;
+      results[i] = await fn(items[i]!);
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  );
+  return results;
+}
+
+export type CreatePlanResult = ActionResult<{
+  planId: string;
+  generated: number;
+  reused: number;
+}>;
+
+export async function createMealPlanAction(
+  _prev: CreatePlanResult | null,
+  formData: FormData
+): Promise<CreatePlanResult> {
+  const user = await requireUser();
+
+  const parsed = createPlanSchema.safeParse({
+    type: formData.get("type"),
+    startDate: formData.get("startDate"),
+    goal: formData.get("goal") || null,
+    difficulty: formData.get("difficulty") || null,
+    fast: formData.get("fast") === "on" || formData.get("fast") === "true",
+    servings: formData.get("servings") || 2,
+    cuisine: formData.get("cuisine") || null,
+    preferences: parseList(formData.get("preferences")),
+    forbidden: parseList(formData.get("forbidden")),
+  });
+  if (!parsed.success) return fromZod(parsed.error);
+
+  const data = parsed.data;
+  const type = data.type as MealPlanType;
+  const days = type === "WEEKLY" ? 7 : 1;
+  const totalSlots = days * SLOTS.length;
+
+  // Rate limit per user (avoid abuse)
+  const rl = await rateLimit(`plan:${user.id}`, 1, 30);
+  if (!rl.ok) return fail("RATE_LIMIT", "Espera medio minuto antes de crear otro plan");
+
+  const plan = await getCurrentPlan(user.id);
+  const usage = await getUsage(user.id);
+
+  // Treat plan creation as N recipe generations against the monthly quota.
+  // If reuse fills slots later, we'll only count the actually generated ones.
+  if (plan.recipesPerMonth !== -1) {
+    if (usage.recipesUsed >= plan.recipesPerMonth) {
+      return fail(
+        "PLAN_LIMIT",
+        "Has alcanzado tu cuota mensual. Mejora de plan para crear más menús."
+      );
+    }
+  }
+
+  const imagesEnabled = planHasFeature(plan, "imagesEnabled");
+  const imageQuality = (
+    plan.imageQuality === "hd" || plan.imageQuality === "standard"
+      ? plan.imageQuality
+      : "low"
+  ) as "low" | "standard" | "hd";
+
+  // Build all slot inputs
+  type Slot = { dayIndex: number; slot: MealSlotEnum };
+  const slots: Slot[] = [];
+  for (let d = 0; d < days; d++) {
+    for (const s of SLOTS) {
+      slots.push({ dayIndex: d, slot: s });
+    }
+  }
+
+  // Track recipe IDs already used to avoid duplicates within the plan
+  const usedIds = new Set<string>();
+
+  const buildSlotInput = (s: Slot): SlotInput => ({
+    slot: s.slot,
+    goal: data.goal ?? null,
+    difficulty: data.difficulty ?? null,
+    fast: data.fast,
+    cuisine: data.cuisine ?? null,
+    preferences: data.preferences,
+    forbidden: data.forbidden,
+    servings: data.servings,
+    excludeRecipeIds: Array.from(usedIds),
+  });
+
+  // Resolve all slots (reuse first, generate when needed). Concurrency cap.
+  // Note: usedIds set is shared, but resolveSlot reads it at call time.
+  // For correctness we run sequentially per day to keep diversity strong.
+  let generated = 0;
+  let reused = 0;
+  let totalTokens = 0;
+  let totalCost = 0;
+
+  type Resolved = {
+    dayIndex: number;
+    slot: MealSlotEnum;
+    recipeId: string;
+    source: "reused" | "generated";
+  };
+
+  const resolvedAll: Resolved[] = [];
+
+  // Group by day so concurrency doesn't shuffle the variety check
+  for (let d = 0; d < days; d++) {
+    const daySlots = slots.filter((s) => s.dayIndex === d);
+    // 4 slots per day -> can run in parallel
+    const day = await mapWithConcurrency(daySlots, 4, async (s) => {
+      try {
+        const r = await resolveSlot({
+          userId: user.id,
+          input: buildSlotInput(s),
+          imagesEnabled,
+          imageQuality,
+        });
+        usedIds.add(r.recipeId);
+        if (r.source === "generated") {
+          generated += 1;
+          totalTokens += r.tokensUsed;
+          totalCost += r.costCents;
+        } else {
+          reused += 1;
+        }
+        return {
+          dayIndex: s.dayIndex,
+          slot: s.slot,
+          recipeId: r.recipeId,
+          source: r.source,
+        } satisfies Resolved;
+      } catch (e) {
+        logger.error({ err: e, slot: s }, "slot resolve failed");
+        return null;
+      }
+    });
+    for (const r of day) if (r) resolvedAll.push(r);
+  }
+
+  if (resolvedAll.length < totalSlots * 0.5) {
+    return fail(
+      "GENERATION_FAILED",
+      "No hemos podido generar suficientes recetas, inténtalo de nuevo en un momento."
+    );
+  }
+
+  // Persist plan + items
+  const startDate = new Date(`${data.startDate}T00:00:00`);
+
+  const created = await prisma.$transaction(async (tx) => {
+    const planRow = await tx.mealPlan.create({
+      data: {
+        userId: user.id,
+        type,
+        startDate,
+        goal: data.goal ?? null,
+        difficulty: data.difficulty ?? null,
+        servings: data.servings,
+      },
+    });
+    await tx.mealPlanItem.createMany({
+      data: resolvedAll.map((r) => ({
+        planId: planRow.id,
+        dayIndex: r.dayIndex,
+        slot: r.slot,
+        recipeId: r.recipeId,
+        servings: data.servings,
+      })),
+    });
+    return planRow;
+  });
+
+  await incrementUsage(
+    user.id,
+    {
+      recipes: generated,
+      images: 0, // image cost already accounted in costCents per recipe
+      tokens: totalTokens,
+      costCents: totalCost,
+    },
+    currentPeriodKey()
+  );
+
+  revalidatePath("/planner");
+  revalidatePath("/recipes");
+  revalidatePath("/dashboard");
+
+  return {
+    ok: true,
+    data: { planId: created.id, generated, reused },
+  };
+}
+
+export async function deleteMealPlanAction(
+  planId: string
+): Promise<ActionResult<{ deleted: true }>> {
+  const user = await requireUser();
+  const plan = await prisma.mealPlan.findUnique({ where: { id: planId } });
+  if (!plan || plan.userId !== user.id) {
+    return fail("NOT_FOUND", "Menú no encontrado");
+  }
+  await prisma.mealPlan.delete({ where: { id: planId } });
+  revalidatePath("/planner");
+  return { ok: true, data: { deleted: true } };
+}
+
+function parseList(value: FormDataEntryValue | null): string[] {
+  if (!value || typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
