@@ -25,12 +25,13 @@ RUN pnpm prisma generate && pnpm build
 
 # 3. Runner
 FROM node:20-alpine AS runner
-RUN apk add --no-cache openssl curl
+RUN apk add --no-cache openssl curl tzdata
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV TZ=Europe/Madrid
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
@@ -53,9 +54,10 @@ CMD ["node", "server.js"]
 # 4. Migrator (one-shot: run DB schema sync + seed before web boots)
 # Uses the builder's full node_modules so prisma CLI + tsx are available.
 FROM node:20-alpine AS migrator
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl tzdata
 WORKDIR /app
 ENV NODE_ENV=production
+ENV TZ=Europe/Madrid
 # Make node_modules/.bin (where tsx lives) available so `prisma db seed` can spawn `tsx`.
 ENV PATH="/app/node_modules/.bin:${PATH}"
 COPY --from=builder /app/node_modules ./node_modules

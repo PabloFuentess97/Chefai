@@ -36,6 +36,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Europe/Madrid
+      PGTZ: Europe/Madrid
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

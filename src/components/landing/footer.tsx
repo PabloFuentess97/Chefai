@@ -87,7 +87,17 @@ export async function Footer() {
         </div>
         <div className="mt-10 pt-6 border-t text-xs text-muted-foreground flex flex-wrap justify-between gap-2">
           <p>© {year} {branding.name}. Todos los derechos reservados.</p>
-          <p>Hecho con cariño y un horno encendido.</p>
+          <p>
+            Hecho con cariño y un horno encendido por{" "}
+            <a
+              href="https://uxea.net"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
+            >
+              Uxea Soluciones
+            </a>
+          </p>
         </div>
       </div>
     </footer>

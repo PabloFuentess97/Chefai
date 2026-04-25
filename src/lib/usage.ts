@@ -2,8 +2,10 @@ import "server-only";
 import { prisma } from "./db";
 
 export function currentPeriodKey(d: Date = new Date()): string {
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  // Local timezone (Europe/Madrid via TZ env in container) so the monthly
+  // reset happens at 00:00 local time, not UTC midnight.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
   return `${y}-${m}`;
 }
 
