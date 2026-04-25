@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, User as UserIcon, CreditCard } from "lucide-react";
+import { LogOut, User as UserIcon, CreditCard, ShieldCheck } from "lucide-react";
+import type { Role } from "@prisma/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +19,11 @@ type Props = {
   email: string;
   name: string | null;
   planName: string;
+  role: Role;
+  brand: React.ReactNode;
 };
 
-export function Topbar({ email, name, planName }: Props) {
+export function Topbar({ email, name, planName, role, brand }: Props) {
   const initials = (name ?? email)
     .split(/[ @._-]/)
     .filter(Boolean)
@@ -29,22 +32,23 @@ export function Topbar({ email, name, planName }: Props) {
     .join("");
 
   return (
-    <header className="h-14 border-b bg-background flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
-      <div className="lg:hidden">
-        <Link href="/dashboard" className="font-semibold">
-          ChefAI
-        </Link>
-      </div>
-      <div className="flex items-center gap-3 ml-auto">
-        <span className="hidden md:inline text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">
-          Plan {planName}
+    <header
+      className="h-14 border-b border-border/60 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/65 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div className="lg:hidden">{brand}</div>
+      <div className="flex items-center gap-2 ml-auto">
+        <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">
+          {planName}
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar>
-                  <AvatarFallback>{initials || "ME"}</AvatarFallback>
+                <Avatar className="size-9">
+                  <AvatarFallback className="text-xs">
+                    {initials || "ME"}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             }
@@ -69,6 +73,12 @@ export function Topbar({ email, name, planName }: Props) {
               <CreditCard className="size-4" />
               Facturación
             </DropdownMenuItem>
+            {role === "ADMIN" && (
+              <DropdownMenuItem render={<Link href="/admin" />}>
+                <ShieldCheck className="size-4" />
+                Panel admin
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <form action={logoutAction}>
               <button

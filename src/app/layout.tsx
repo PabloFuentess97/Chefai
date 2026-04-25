@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -26,11 +26,37 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: process.env.NEXT_PUBLIC_APP_URL
       ? new URL(process.env.NEXT_PUBLIC_APP_URL)
       : undefined,
+    applicationName: branding.name,
+    appleWebApp: {
+      capable: true,
+      title: branding.name,
+      statusBarStyle: "default",
+    },
+    formatDetection: {
+      telephone: false,
+    },
     openGraph: {
       title: branding.name,
       description: branding.tagline,
       type: "website",
     },
+    icons: {
+      icon: "/favicon.ico",
+      apple: branding.logoUrl,
+    },
+    manifest: "/manifest.webmanifest",
+  };
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const branding = await getBranding();
+  return {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+    themeColor: branding.color,
   };
 }
 
@@ -47,9 +73,9 @@ export default async function RootLayout({
       style={{ "--brand": branding.color } as React.CSSProperties}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground overscroll-none">
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );
