@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 18,
+    marginBottom: 8,
   },
   metaPill: {
     flex: 1,
@@ -314,6 +314,22 @@ const styles = StyleSheet.create({
   metaValue: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
+  },
+  nutritionLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    marginBottom: 16,
+    fontSize: 9,
+    color: "#57534e",
+    letterSpacing: 0.5,
+  },
+  nutritionItem: {
+    fontFamily: "Helvetica-Bold",
+  },
+  nutritionDivider: {
+    color: "#d6d3d1",
   },
 
   twoCol: {
@@ -350,18 +366,19 @@ const styles = StyleSheet.create({
   stepsCol: { flex: 1 },
   step: {
     flexDirection: "row",
-    marginBottom: 12,
-    gap: 10,
+    marginBottom: 10,
+    alignItems: "flex-start",
   },
   stepNumDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    fontSize: 10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     textAlign: "center",
     paddingTop: 4,
     color: "#ffffff",
+    marginRight: 8,
   },
   stepText: {
     flex: 1,
@@ -369,37 +386,15 @@ const styles = StyleSheet.create({
     lineHeight: 1.55,
     color: "#1c1917",
   },
-  stepDuration: {
-    fontSize: 8,
+  stepDurationInline: {
+    fontSize: 8.5,
     color: "#a8a29e",
-    marginTop: 3,
-    letterSpacing: 1,
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
 
-  macroRow: {
-    flexDirection: "row",
-    backgroundColor: "#ffffff",
-    border: 0.5,
-    borderColor: "#e7e5e4",
-    borderRadius: 6,
-    padding: 12,
-  },
-  macroCell: {
-    flex: 1,
-    alignItems: "center",
-  },
-  macroLabel: {
-    fontSize: 7,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    color: "#a8a29e",
-    marginBottom: 3,
-  },
-  macroValue: {
-    fontSize: 14,
-    fontFamily: "Helvetica-Bold",
-  },
+  // (macroRow removed — moved into a compact nutritionLine right below metaRow)
 
   // ----- Back cover -----
   backCover: {
@@ -692,6 +687,26 @@ function RecipePage({
         </View>
       </View>
 
+      <View style={styles.nutritionLine}>
+        <Text>
+          POR RACIÓN ·{" "}
+          <Text style={styles.nutritionItem}>
+            {Math.round(recipe.totalProteins ?? 0)}g
+          </Text>{" "}
+          proteínas
+          <Text style={styles.nutritionDivider}>  ·  </Text>
+          <Text style={styles.nutritionItem}>
+            {Math.round(recipe.totalFats ?? 0)}g
+          </Text>{" "}
+          grasas
+          <Text style={styles.nutritionDivider}>  ·  </Text>
+          <Text style={styles.nutritionItem}>
+            {Math.round(recipe.totalCarbs ?? 0)}g
+          </Text>{" "}
+          carbos
+        </Text>
+      </View>
+
       <View style={styles.twoCol}>
         <View style={styles.ingredientsBox}>
           <Text style={[styles.sectionTitle, { color: brandColor }]}>
@@ -721,44 +736,17 @@ function RecipePage({
               >
                 {i + 1}
               </Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.stepText}>{s.content}</Text>
+              <Text style={styles.stepText}>
+                {s.content}
                 {s.durationMin != null && s.durationMin > 0 && (
-                  <Text style={styles.stepDuration}>
-                    {s.durationMin} min
+                  <Text style={styles.stepDurationInline}>
+                    {"  ·  "}
+                    {s.durationMin} MIN
                   </Text>
                 )}
-              </View>
+              </Text>
             </View>
           ))}
-        </View>
-      </View>
-
-      <View style={styles.macroRow}>
-        <View style={styles.macroCell}>
-          <Text style={styles.macroLabel}>Por ración</Text>
-          <Text style={styles.macroValue}>
-            {Math.round(recipe.totalCalories ?? 0)}
-          </Text>
-          <Text style={styles.macroLabel}>kcal</Text>
-        </View>
-        <View style={styles.macroCell}>
-          <Text style={styles.macroLabel}>Proteínas</Text>
-          <Text style={styles.macroValue}>
-            {Math.round(recipe.totalProteins ?? 0)} g
-          </Text>
-        </View>
-        <View style={styles.macroCell}>
-          <Text style={styles.macroLabel}>Grasas</Text>
-          <Text style={styles.macroValue}>
-            {Math.round(recipe.totalFats ?? 0)} g
-          </Text>
-        </View>
-        <View style={styles.macroCell}>
-          <Text style={styles.macroLabel}>Carbos</Text>
-          <Text style={styles.macroValue}>
-            {Math.round(recipe.totalCarbs ?? 0)} g
-          </Text>
         </View>
       </View>
 
