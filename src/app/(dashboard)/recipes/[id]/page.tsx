@@ -55,6 +55,7 @@ export default async function RecipeDetailPage({ params }: Props) {
                 alt={recipe.title}
                 fill
                 priority
+                unoptimized
                 sizes="(min-width: 1024px) 60vw, 100vw"
                 className="object-cover"
               />
