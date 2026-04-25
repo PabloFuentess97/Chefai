@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { getBranding } from "@/lib/branding";
 import { Toaster } from "@/components/ui/sonner";
+import { CookieConsent } from "@/components/shared/cookie-consent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,18 +16,39 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://chefai.fit";
+
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding();
+  const title = `${branding.name} — Recetas con IA según tus ingredientes y objetivo`;
+  const description =
+    "Genera recetas personalizadas en segundos con IA. Indica los ingredientes que tienes, alergias y tu objetivo (déficit, volumen, definición) y obtén platos completos con foto, valores nutricionales y pasos claros. En español.";
+
   return {
     title: {
-      default: `${branding.name} — ${branding.tagline}`,
+      default: title,
       template: `%s · ${branding.name}`,
     },
-    description: branding.tagline,
-    metadataBase: process.env.NEXT_PUBLIC_APP_URL
-      ? new URL(process.env.NEXT_PUBLIC_APP_URL)
-      : undefined,
+    description,
+    metadataBase: new URL(APP_URL),
     applicationName: branding.name,
+    keywords: [
+      "recetas con ia",
+      "recetas personalizadas",
+      "generador de recetas",
+      "recetas saludables",
+      "déficit calórico",
+      "ganar masa muscular",
+      "definición",
+      "recetas con ingredientes que tengo",
+      "ai cocina",
+      "chefai",
+      "recetario personal",
+      "macros por receta",
+    ],
+    authors: [{ name: branding.name, url: APP_URL }],
+    creator: branding.name,
+    publisher: branding.name,
     appleWebApp: {
       capable: true,
       title: branding.name,
@@ -34,17 +56,54 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     formatDetection: {
       telephone: false,
+      address: false,
+      email: false,
     },
     openGraph: {
-      title: branding.name,
-      description: branding.tagline,
+      title,
+      description,
+      url: APP_URL,
+      siteName: branding.name,
       type: "website",
+      locale: "es_ES",
+      images: [
+        {
+          url: `${APP_URL}/api/og`,
+          width: 1200,
+          height: 630,
+          alt: branding.name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`${APP_URL}/api/og`],
+    },
+    alternates: {
+      canonical: APP_URL,
+      languages: {
+        "es-ES": APP_URL,
+      },
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
     icons: {
       icon: "/favicon.ico",
       apple: branding.logoUrl,
     },
     manifest: "/manifest.webmanifest",
+    category: "food",
   };
 }
 
@@ -68,7 +127,7 @@ export default async function RootLayout({
   const branding = await getBranding();
   return (
     <html
-      lang="es"
+      lang="es-ES"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       style={{ "--brand": branding.color } as React.CSSProperties}
       suppressHydrationWarning
@@ -76,6 +135,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground overscroll-none">
         {children}
         <Toaster richColors position="top-center" />
+        <CookieConsent />
       </body>
     </html>
   );

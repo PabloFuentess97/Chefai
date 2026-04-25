@@ -17,7 +17,7 @@ const FALLBACK: Branding = {
   tagline: "Recetas con IA en segundos",
   logoUrl: "/logo.svg",
   color: "#16a34a",
-  supportEmail: "hola@chefai.app",
+  supportEmail: "hola@chefai.fit",
   termsUrl: "/terms",
   privacyUrl: "/privacy",
 };

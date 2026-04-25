@@ -70,6 +70,11 @@ export async function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/cookies" className="hover:text-foreground">
+                  Cookies
+                </Link>
+              </li>
+              <li>
                 <a
                   href={`mailto:${branding.supportEmail}`}
                   className="hover:text-foreground"

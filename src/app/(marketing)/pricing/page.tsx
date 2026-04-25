@@ -2,7 +2,19 @@ import { PricingCards } from "@/components/landing/pricing-cards";
 import { Faq } from "@/components/landing/faq";
 import { listPublicPlans } from "@/lib/plans";
 
-export const metadata = { title: "Precios" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Precios — Planes Free, Pro y Chef",
+  description:
+    "Compara los planes de ChefAI: Free (3 recetas/mes), Pro (50 recetas con imagen y PDF) y Chef (recetas ilimitadas con imagen HD y planificador). Sin compromiso, cancela cuando quieras.",
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    title: "Precios — Planes Free, Pro y Chef · ChefAI",
+    description:
+      "Compara los planes de ChefAI. Empieza gratis, mejora cuando quieras.",
+  },
+};
 
 export default async function PricingPage() {
   const plans = await listPublicPlans();
