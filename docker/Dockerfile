@@ -5,8 +5,11 @@ FROM node:20-alpine AS deps
 RUN corepack enable
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+# node-linker=hoisted → flat node_modules (npm-style) so prisma generate
+# writes to node_modules/.prisma/client at the top level (not inside .pnpm/).
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm config set --global enable-pre-post-scripts true && \
+    pnpm config set --global node-linker hoisted && \
     pnpm install --frozen-lockfile --prod=false
 
 # 2. Builder
