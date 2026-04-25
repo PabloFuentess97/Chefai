@@ -98,10 +98,7 @@ export async function generateMetadata(): Promise<Metadata> {
         "max-video-preview": -1,
       },
     },
-    icons: {
-      icon: "/favicon.ico",
-      apple: branding.logoUrl,
-    },
+    // icons are auto-generated from app/icon.tsx and app/apple-icon.tsx
     manifest: "/manifest.webmanifest",
     category: "food",
   };
