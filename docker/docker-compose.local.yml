@@ -1,0 +1,55 @@
+# Local "all-in-Docker" stack: web + postgres + migrate.
+# No nginx, no certbot — la app se sirve directa en http://<host>:3000.
+# Para producción real con HTTPS usa docker-compose.yml + DEPLOY.md.
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: runner
+    image: chefai-web:local
+    restart: unless-stopped
+    env_file: ../.env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/public/uploads
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: migrator
+    image: chefai-migrator:local
+    restart: "no"
+    env_file: ../.env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chefai
+      POSTGRES_PASSWORD: chefai
+      POSTGRES_DB: chefai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chefai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  uploads:

@@ -46,3 +46,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
   CMD curl -fs http://127.0.0.1:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
+
+# 4. Migrator (one-shot: run DB schema sync + seed before web boots)
+# Uses the builder's full node_modules so prisma CLI + tsx are available.
+FROM node:20-alpine AS migrator
+RUN apk add --no-cache openssl
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
+CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js db push --accept-data-loss && node ./node_modules/prisma/build/index.js db seed"]

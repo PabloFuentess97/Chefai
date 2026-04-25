@@ -3,6 +3,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      target: runner
     image: chefai-web:latest
     restart: always
     env_file: ../.env.production
@@ -16,19 +17,17 @@ services:
       - "3000"
 
   migrate:
-    image: chefai-web:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: migrator
+    image: chefai-migrator:latest
     restart: "no"
     env_file: ../.env.production
     depends_on:
       postgres:
         condition: service_healthy
     networks: [internal]
-    entrypoint:
-      - sh
-      - -c
-      - |
-        node ./node_modules/prisma/build/index.js migrate deploy &&
-        node ./node_modules/prisma/build/index.js db seed
 
   postgres:
     image: postgres:16-alpine
