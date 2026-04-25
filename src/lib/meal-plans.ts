@@ -40,6 +40,7 @@ export type SlotInput = {
   forbidden: string[];
   servings: number;
   excludeRecipeIds: string[];
+  avoidTitles?: string[]; // recently used recipe titles to encourage variety
 };
 
 export type ResolvedSlot = {
@@ -55,29 +56,34 @@ export type ResolvedSlot = {
 
 async function findReusableRecipe(input: SlotInput): Promise<string | null> {
   const mealType = SLOT_TO_MEAL_TYPE[input.slot];
-  const conditions = [
-    {
-      mealType,
-      goal: input.goal ?? undefined,
-      difficulty: input.difficulty ?? undefined,
-    },
-    // Relax: drop difficulty
-    {
-      mealType,
-      goal: input.goal ?? undefined,
-    },
-    // Relax: drop goal
-    {
-      mealType,
-    },
-  ];
+  const cuisine = input.cuisine?.trim();
+
+  // Cuisine is treated as a hard preference. If the user picked one, prefer
+  // matches; only fall back to other cuisines when no match exists.
+  const cuisineWhere = cuisine
+    ? { cuisine: { equals: cuisine, mode: "insensitive" as const } }
+    : {};
+
+  const conditions = cuisine
+    ? [
+        { mealType, ...cuisineWhere, goal: input.goal ?? undefined, difficulty: input.difficulty ?? undefined },
+        { mealType, ...cuisineWhere, goal: input.goal ?? undefined },
+        { mealType, ...cuisineWhere },
+        // Final fall-back: no cuisine match available
+        { mealType, goal: input.goal ?? undefined },
+        { mealType },
+      ]
+    : [
+        { mealType, goal: input.goal ?? undefined, difficulty: input.difficulty ?? undefined },
+        { mealType, goal: input.goal ?? undefined },
+        { mealType },
+      ];
 
   for (const where of conditions) {
     const candidates = await prisma.recipe.findMany({
       where: {
         ...where,
         id: { notIn: input.excludeRecipeIds },
-        // Quick filter for fast meals: total time ≤25 min
         ...(input.fast
           ? {
               prepMinutes: { lt: 30 },
@@ -109,9 +115,15 @@ Reglas estrictas (en orden de prioridad):
 1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias). Es seguridad alimentaria.
 2. La receta DEBE ser exactamente UNA, apropiada para el TIPO DE COMIDA indicado (en sabor, presentación y textura).
 3. Si se indica OBJETIVO NUTRICIONAL con rango calórico y proteína mínima, respétalos. Ajusta cantidades para encajar.
-4. Las instrucciones (steps) son claras, en imperativo, sin omitir pasos críticos.
-5. Unidades métricas: g, ml, ud, cda, cdta.
-6. Cantidades calculadas para el número de comensales indicado.`;
+4. Si se indica COCINA específica (mexicana, india, italiana, asiática, etc.), la receta DEBE ser AUTÉNTICA de esa tradición culinaria: usar ingredientes característicos, técnicas y perfiles de sabor propios de esa cocina. NO mezcles ni inventes platos fusión genéricos. Ejemplos:
+   - india: especias como comino, cúrcuma, garam masala, jengibre, curry, lentejas, arroz basmati, paneer, ghee
+   - mexicana: chiles, cilantro, lima, comino, frijoles, maíz, aguacate, tomatillo
+   - italiana: aceite de oliva, ajo, parmesano, albahaca, pasta fresca, técnicas como sofrito y mantecato
+   - asiática: salsa de soja, jengibre, ajo, sésamo, técnicas como wok y al vapor
+5. Si se indica una lista AVOID_TITLES, evita generar recetas con títulos parecidos o el mismo plato base. Da variedad real.
+6. Las instrucciones (steps) son claras, en imperativo, sin omitir pasos críticos.
+7. Unidades métricas: g, ml, ud, cda, cdta.
+8. Cantidades calculadas para el número de comensales indicado.`;
 
 function buildSlotUserPrompt(input: SlotInput): string {
   const meal = getMeal(SLOT_TO_MEAL_TYPE[input.slot]);
@@ -126,13 +138,23 @@ function buildSlotUserPrompt(input: SlotInput): string {
     ? `OBJETIVO NUTRICIONAL: ${goal.label}. La ración debe tener ${calRange.min}-${calRange.max} kcal y al menos ${proteinMin}g de proteína.`
     : "";
 
+  const cuisineLine = input.cuisine
+    ? `COCINA: ${input.cuisine} — la receta DEBE ser auténtica de esta tradición culinaria, con ingredientes y técnicas propios.`
+    : "COCINA: cualquiera";
+
+  const avoidLine =
+    input.avoidTitles && input.avoidTitles.length > 0
+      ? `AVOID_TITLES (recetas recientes que NO debes repetir ni imitar): ${JSON.stringify(input.avoidTitles.slice(0, 20))}`
+      : "";
+
   return `Genera UNA receta con estos parámetros:
 
 TIPO DE COMIDA: ${meal?.label ?? "comida"}.
 ${goalLine}
 ${speedLine}
+${cuisineLine}
+${avoidLine}
 DIFICULTAD: ${input.difficulty ?? "any"}
-COCINA: ${input.cuisine ?? "any"}
 COMENSALES: ${input.servings}
 INGREDIENTES PROHIBIDOS: ${JSON.stringify(input.forbidden)}
 INGREDIENTES SUGERIDOS (opcional, no obligatorio): ${JSON.stringify(input.preferences)}
@@ -193,29 +215,97 @@ async function generateOneRecipeForSlot(input: SlotInput) {
   return { recipe: r, tokens: totalTokens, costCents };
 }
 
+// In-process semaphore — caps concurrent image calls so we don't blast
+// past OpenAI's 5/min limit for gpt-image-1.
+class Semaphore {
+  private active = 0;
+  private queue: Array<() => void> = [];
+  constructor(private readonly limit: number) {}
+  async acquire(): Promise<void> {
+    if (this.active < this.limit) {
+      this.active += 1;
+      return;
+    }
+    return new Promise((resolve) =>
+      this.queue.push(() => {
+        this.active += 1;
+        resolve();
+      })
+    );
+  }
+  release(): void {
+    this.active -= 1;
+    const next = this.queue.shift();
+    if (next) next();
+  }
+}
+
+const imageSemaphore = new Semaphore(2);
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfter(message: string): number {
+  // OpenAI error messages: "Please try again in 12s." or "1m23s"
+  const sec = message.match(/try again in\s+(\d+)s/i);
+  if (sec?.[1]) return parseInt(sec[1], 10);
+  const ms = message.match(/try again in\s+(\d+)ms/i);
+  if (ms?.[1]) return Math.max(1, Math.ceil(parseInt(ms[1], 10) / 1000));
+  return 15;
+}
+
+async function callOpenAIImage(
+  imagePrompt: string,
+  quality: "low" | "standard" | "hd"
+) {
+  return openai.images.generate({
+    model: env.OPENAI_IMAGE_MODEL,
+    prompt: `${IMAGE_PROMPT_PREFIX} ${imagePrompt}`,
+    size: "1024x1024",
+    quality:
+      quality === "hd" ? "high" : quality === "standard" ? "medium" : "low",
+    n: 1,
+  });
+}
+
 async function maybeGenerateImage(
   imagePrompt: string,
   enabled: boolean,
   quality: "low" | "standard" | "hd"
 ): Promise<{ b64: string | null; costCents: number }> {
   if (!enabled) return { b64: null, costCents: 0 };
+
+  await imageSemaphore.acquire();
   try {
-    const r = await openai.images.generate({
-      model: env.OPENAI_IMAGE_MODEL,
-      prompt: `${IMAGE_PROMPT_PREFIX} ${imagePrompt}`,
-      size: "1024x1024",
-      quality:
-        quality === "hd" ? "high" : quality === "standard" ? "medium" : "low",
-      n: 1,
-    });
-    const b64 = r.data?.[0]?.b64_json ?? null;
-    const costUsd =
-      IMAGE_USD_BY_QUALITY[quality] ?? IMAGE_USD_BY_QUALITY.standard;
-    const costCents = Math.ceil(costUsd * EUR_PER_USD * 100);
-    return { b64, costCents };
-  } catch (e) {
-    logger.error({ err: e }, "meal plan image generation failed");
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const r = await callOpenAIImage(imagePrompt, quality);
+        const b64 = r.data?.[0]?.b64_json ?? null;
+        const costUsd =
+          IMAGE_USD_BY_QUALITY[quality] ?? IMAGE_USD_BY_QUALITY.standard;
+        const costCents = Math.ceil(costUsd * EUR_PER_USD * 100);
+        return { b64, costCents };
+      } catch (e) {
+        const err = e as { status?: number; message?: string };
+        if (err?.status === 429 && attempt === 0) {
+          const wait = parseRetryAfter(err.message ?? "");
+          logger.warn(
+            { wait, attempt },
+            "image rate-limited, sleeping then retrying"
+          );
+          await sleep((wait + 1) * 1000);
+          attempt += 1;
+          continue;
+        }
+        logger.error({ err: e }, "meal plan image generation failed");
+        return { b64: null, costCents: 0 };
+      }
+    }
     return { b64: null, costCents: 0 };
+  } finally {
+    imageSemaphore.release();
   }
 }
 

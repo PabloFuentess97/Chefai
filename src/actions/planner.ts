@@ -132,9 +132,11 @@ export async function createMealPlanAction(
       : "low"
   ) as "low" | "standard" | "hd";
 
-  // OpenAI image rate limit is ~5/min for gpt-image-1. Cap how many images
-  // we attempt during plan creation. Reused recipes already keep their image.
-  const imageBudget = { remaining: imagesEnabled ? (type === "DAILY" ? 4 : 6) : 0 };
+  // Generous image budget — semaphore + retry inside resolveSlot pace the
+  // calls within OpenAI rate limits without dropping many.
+  const imageBudget = {
+    remaining: imagesEnabled ? (type === "DAILY" ? 6 : 16) : 0,
+  };
 
   // Build all slot inputs
   type Slot = { dayIndex: number; slot: MealSlotEnum };
@@ -145,7 +147,22 @@ export async function createMealPlanAction(
     }
   }
 
-  // Track recipe IDs already used to avoid duplicates within the plan
+  // Variety: exclude recipes already used in the user's plans in the last 14
+  // days so weekly subscribers don't get repeats. We collect recipeIds AND
+  // titles (to feed the AI prompt and discourage clones).
+  const recentCutoff = new Date(Date.now() - 14 * 86400_000);
+  const recentItems = await prisma.mealPlanItem.findMany({
+    where: {
+      plan: { userId: user.id, createdAt: { gte: recentCutoff } },
+    },
+    include: { recipe: { select: { id: true, title: true } } },
+  });
+  const recentRecipeIds = new Set(recentItems.map((it) => it.recipeId));
+  const recentTitles = Array.from(
+    new Set(recentItems.map((it) => it.recipe.title))
+  );
+
+  // Track recipe IDs already used in THIS plan (to avoid intra-plan dupes)
   const usedIds = new Set<string>();
 
   const buildSlotInput = (s: Slot): SlotInput => ({
@@ -157,7 +174,8 @@ export async function createMealPlanAction(
     preferences: data.preferences,
     forbidden: data.forbidden,
     servings: data.servings,
-    excludeRecipeIds: Array.from(usedIds),
+    excludeRecipeIds: [...usedIds, ...recentRecipeIds],
+    avoidTitles: recentTitles,
   });
 
   // Resolve all slots (reuse first, generate when needed). Concurrency cap.
