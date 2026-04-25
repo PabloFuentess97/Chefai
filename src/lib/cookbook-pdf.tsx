@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
 
   // ----- Generic page -----
   contentPage: {
-    padding: 56,
+    padding: 48,
     backgroundColor: "#fafaf9",
   },
   pageHeader: {
@@ -249,124 +249,128 @@ const styles = StyleSheet.create({
   },
 
   // ----- Recipe page -----
-  recipeChapter: {
-    fontSize: 11,
-    letterSpacing: 6,
-    fontFamily: "Helvetica-Bold",
-    textTransform: "uppercase",
-    marginTop: 4,
+  recipeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 4,
   },
-  recipeCuisine: {
+  recipeChapter: {
     fontSize: 9,
+    letterSpacing: 5,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+  },
+  recipeCuisine: {
+    fontSize: 8,
     letterSpacing: 2,
     textTransform: "uppercase",
     color: "#78716c",
-    marginBottom: 14,
+    paddingTop: 2,
   },
   recipeTitle: {
-    fontSize: 36,
+    fontSize: 26,
     fontFamily: "Helvetica-Bold",
     lineHeight: 1.05,
-    marginBottom: 10,
+    marginTop: 4,
+    marginBottom: 6,
   },
   recipeDesc: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontStyle: "italic",
     color: "#57534e",
-    lineHeight: 1.55,
-    marginBottom: 18,
+    lineHeight: 1.5,
+    marginBottom: 12,
   },
-  recipeImage: {
-    width: "100%",
-    height: 230,
+  // Hero row: image on left, ingredients on right
+  heroRow: {
+    flexDirection: "row",
+    marginBottom: 10,
+  },
+  heroImage: {
+    width: 230,
+    height: 200,
     objectFit: "cover",
     borderRadius: 6,
-    marginBottom: 14,
+    marginRight: 14,
   },
-  recipeImagePlaceholder: {
-    width: "100%",
-    height: 230,
+  heroImagePlaceholder: {
+    width: 230,
+    height: 200,
     borderRadius: 6,
-    marginBottom: 14,
+    marginRight: 14,
+  },
+  heroInfoCol: {
+    flex: 1,
   },
   metaRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 6,
   },
   metaPill: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 5,
     backgroundColor: "#ffffff",
     border: 0.5,
     borderColor: "#e7e5e4",
   },
   metaLabel: {
-    fontSize: 7,
-    letterSpacing: 2,
+    fontSize: 6.5,
+    letterSpacing: 1.8,
     textTransform: "uppercase",
     color: "#a8a29e",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   metaValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Helvetica-Bold",
   },
   nutritionLine: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     paddingHorizontal: 4,
-    paddingVertical: 6,
-    marginBottom: 16,
-    fontSize: 9,
+    paddingVertical: 5,
+    marginBottom: 12,
+    fontSize: 8.5,
     color: "#57534e",
     letterSpacing: 0.5,
   },
   nutritionItem: {
     fontFamily: "Helvetica-Bold",
+    color: "#1c1917",
   },
   nutritionDivider: {
     color: "#d6d3d1",
   },
 
-  twoCol: {
-    flexDirection: "row",
-    gap: 18,
-    marginBottom: 14,
-  },
-  ingredientsBox: {
-    width: 200,
-    backgroundColor: "#ffffff",
-    border: 0.5,
-    borderColor: "#e7e5e4",
-    borderRadius: 6,
-    padding: 14,
-  },
   sectionTitle: {
     fontSize: 9,
     letterSpacing: 3,
     textTransform: "uppercase",
     fontFamily: "Helvetica-Bold",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   ingredientItem: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 4,
-    fontSize: 10,
+    paddingVertical: 2.5,
+    fontSize: 9.5,
     borderBottom: 0.5,
     borderBottomColor: "#f5f5f4",
   },
   ingredientName: { flex: 1, paddingRight: 6 },
   ingredientQty: { fontFamily: "Helvetica-Bold" },
+  // Steps section sits below the hero, full width.
+  // Title is `wrap={false}` so it never gets orphaned at page bottom.
+  stepsHeader: {
+    marginTop: 4,
+    marginBottom: 6,
+  },
 
-  stepsCol: { flex: 1 },
   step: {
     flexDirection: "row",
-    marginBottom: 10,
+    marginBottom: 8,
     alignItems: "flex-start",
   },
   stepNumDot: {
@@ -634,81 +638,35 @@ function RecipePage({
         </Text>
       </View>
 
-      <Text style={[styles.recipeChapter, { color: brandColor }]}>
-        Receta {String(number).padStart(2, "0")}
-      </Text>
-      {recipe.cuisine && (
-        <Text style={styles.recipeCuisine}>{recipe.cuisine}</Text>
-      )}
-      <Text style={styles.recipeTitle}>{recipe.title}</Text>
-      {recipe.description && (
-        <Text style={styles.recipeDesc}>{recipe.description}</Text>
-      )}
-
-      {imageDataUrl ? (
-        <PdfImage src={imageDataUrl} style={styles.recipeImage} />
-      ) : (
-        <View
-          style={[
-            styles.recipeImagePlaceholder,
-            { backgroundColor: withAlpha(brandColor, 0.12) },
-          ]}
-        />
-      )}
-
-      <View style={styles.metaRow}>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaLabel}>Tiempo total</Text>
-          <Text style={styles.metaValue}>{time > 0 ? `${time} min` : "—"}</Text>
-        </View>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaLabel}>Comensales</Text>
-          <Text style={styles.metaValue}>{recipe.servings}</Text>
-        </View>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaLabel}>Dificultad</Text>
-          <Text style={styles.metaValue}>
-            {recipe.difficulty === "easy"
-              ? "Fácil"
-              : recipe.difficulty === "medium"
-                ? "Media"
-                : recipe.difficulty === "hard"
-                  ? "Difícil"
-                  : "—"}
+      {/* Title block — kept together, never orphaned */}
+      <View wrap={false}>
+        <View style={styles.recipeHeader}>
+          <Text style={[styles.recipeChapter, { color: brandColor }]}>
+            Receta {String(number).padStart(2, "0")}
           </Text>
+          {recipe.cuisine && (
+            <Text style={styles.recipeCuisine}>{recipe.cuisine}</Text>
+          )}
         </View>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaLabel}>Calorías</Text>
-          <Text style={styles.metaValue}>
-            {recipe.totalCalories
-              ? `${Math.round(recipe.totalCalories)} kcal`
-              : "—"}
-          </Text>
-        </View>
+        <Text style={styles.recipeTitle}>{recipe.title}</Text>
+        {recipe.description && (
+          <Text style={styles.recipeDesc}>{recipe.description}</Text>
+        )}
       </View>
 
-      <View style={styles.nutritionLine}>
-        <Text>
-          POR RACIÓN ·{" "}
-          <Text style={styles.nutritionItem}>
-            {Math.round(recipe.totalProteins ?? 0)}g
-          </Text>{" "}
-          proteínas
-          <Text style={styles.nutritionDivider}>  ·  </Text>
-          <Text style={styles.nutritionItem}>
-            {Math.round(recipe.totalFats ?? 0)}g
-          </Text>{" "}
-          grasas
-          <Text style={styles.nutritionDivider}>  ·  </Text>
-          <Text style={styles.nutritionItem}>
-            {Math.round(recipe.totalCarbs ?? 0)}g
-          </Text>{" "}
-          carbos
-        </Text>
-      </View>
-
-      <View style={styles.twoCol}>
-        <View style={styles.ingredientsBox}>
+      {/* Hero row: image on left + ingredients on right */}
+      <View style={styles.heroRow} wrap={false}>
+        {imageDataUrl ? (
+          <PdfImage src={imageDataUrl} style={styles.heroImage} />
+        ) : (
+          <View
+            style={[
+              styles.heroImagePlaceholder,
+              { backgroundColor: withAlpha(brandColor, 0.12) },
+            ]}
+          />
+        )}
+        <View style={styles.heroInfoCol}>
           <Text style={[styles.sectionTitle, { color: brandColor }]}>
             Ingredientes
           </Text>
@@ -724,31 +682,86 @@ function RecipePage({
             </View>
           ))}
         </View>
+      </View>
 
-        <View style={styles.stepsCol}>
-          <Text style={[styles.sectionTitle, { color: brandColor }]}>
-            Preparación
+      {/* Meta + nutrition — kept together */}
+      <View wrap={false}>
+        <View style={styles.metaRow}>
+          <View style={styles.metaPill}>
+            <Text style={styles.metaLabel}>Tiempo total</Text>
+            <Text style={styles.metaValue}>
+              {time > 0 ? `${time} min` : "—"}
+            </Text>
+          </View>
+          <View style={styles.metaPill}>
+            <Text style={styles.metaLabel}>Comensales</Text>
+            <Text style={styles.metaValue}>{recipe.servings}</Text>
+          </View>
+          <View style={styles.metaPill}>
+            <Text style={styles.metaLabel}>Dificultad</Text>
+            <Text style={styles.metaValue}>
+              {recipe.difficulty === "easy"
+                ? "Fácil"
+                : recipe.difficulty === "medium"
+                  ? "Media"
+                  : recipe.difficulty === "hard"
+                    ? "Difícil"
+                    : "—"}
+            </Text>
+          </View>
+          <View style={styles.metaPill}>
+            <Text style={styles.metaLabel}>Calorías</Text>
+            <Text style={styles.metaValue}>
+              {recipe.totalCalories
+                ? `${Math.round(recipe.totalCalories)} kcal`
+                : "—"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.nutritionLine}>
+          <Text>
+            POR RACIÓN ·{" "}
+            <Text style={styles.nutritionItem}>
+              {Math.round(recipe.totalProteins ?? 0)}g
+            </Text>{" "}
+            proteínas
+            <Text style={styles.nutritionDivider}>  ·  </Text>
+            <Text style={styles.nutritionItem}>
+              {Math.round(recipe.totalFats ?? 0)}g
+            </Text>{" "}
+            grasas
+            <Text style={styles.nutritionDivider}>  ·  </Text>
+            <Text style={styles.nutritionItem}>
+              {Math.round(recipe.totalCarbs ?? 0)}g
+            </Text>{" "}
+            carbos
           </Text>
-          {recipe.steps.map((s, i) => (
-            <View key={s.id} style={styles.step} wrap={false}>
-              <Text
-                style={[styles.stepNumDot, { backgroundColor: brandColor }]}
-              >
-                {i + 1}
-              </Text>
-              <Text style={styles.stepText}>
-                {s.content}
-                {s.durationMin != null && s.durationMin > 0 && (
-                  <Text style={styles.stepDurationInline}>
-                    {"  ·  "}
-                    {s.durationMin} MIN
-                  </Text>
-                )}
-              </Text>
-            </View>
-          ))}
         </View>
       </View>
+
+      {/* Steps section — title sticks to the first steps; long lists flow naturally to page 2 */}
+      <View wrap={false} style={styles.stepsHeader}>
+        <Text style={[styles.sectionTitle, { color: brandColor }]}>
+          Preparación
+        </Text>
+      </View>
+      {recipe.steps.map((s, i) => (
+        <View key={s.id} style={styles.step} wrap={false}>
+          <Text style={[styles.stepNumDot, { backgroundColor: brandColor }]}>
+            {i + 1}
+          </Text>
+          <Text style={styles.stepText}>
+            {s.content}
+            {s.durationMin != null && s.durationMin > 0 && (
+              <Text style={styles.stepDurationInline}>
+                {"  ·  "}
+                {s.durationMin} MIN
+              </Text>
+            )}
+          </Text>
+        </View>
+      ))}
 
       <PageFooter brand={brandName} label={`Receta ${number} de ${total}`} />
     </Page>
