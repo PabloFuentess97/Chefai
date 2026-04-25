@@ -99,6 +99,21 @@ export async function createMealPlanAction(
   const plan = await getCurrentPlan(user.id);
   const usage = await getUsage(user.id);
 
+  // Plan-level feature gate: meal planner is a paid feature
+  if (!planHasFeature(plan, "mealPlanner")) {
+    return fail(
+      "PLAN_FEATURE",
+      "La creación de menús está disponible en los planes Pro y Chef. Mejora tu plan para usarla."
+    );
+  }
+  // Weekly plans only on Chef (or any plan with weeklyPlanner true)
+  if (type === "WEEKLY" && !planHasFeature(plan, "weeklyPlanner")) {
+    return fail(
+      "PLAN_FEATURE",
+      "Los menús semanales están disponibles en el plan Chef. Crea uno diario o mejora tu plan."
+    );
+  }
+
   // Treat plan creation as N recipe generations against the monthly quota.
   // If reuse fills slots later, we'll only count the actually generated ones.
   if (plan.recipesPerMonth !== -1) {

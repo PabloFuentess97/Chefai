@@ -247,11 +247,50 @@ export async function resolveSlot(args: {
   // 1. Try reuse
   const reusableId = await findReusableRecipe(input);
   if (reusableId) {
+    let imageCost = 0;
+    // Top-up: if the user is on a paid plan and the reused recipe has no
+    // image (probably created by a Free user), generate one and persist it
+    // back to the recipe so future viewers also benefit.
+    if (imagesEnabled) {
+      const existing = await prisma.recipe.findUnique({
+        where: { id: reusableId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          cuisine: true,
+          imageStoragePath: true,
+        },
+      });
+      if (existing && !existing.imageStoragePath) {
+        const promptParts = [
+          existing.title,
+          existing.description ?? "",
+          existing.cuisine ? `${existing.cuisine} cuisine` : "",
+        ].filter(Boolean);
+        const { b64, costCents } = await maybeGenerateImage(
+          promptParts.join(", "),
+          true,
+          imageQuality
+        );
+        imageCost = costCents;
+        if (b64) {
+          const saved = await saveImage(userId, b64);
+          await prisma.recipe.update({
+            where: { id: existing.id },
+            data: {
+              imageUrl: saved.url,
+              imageStoragePath: saved.absolutePath,
+            },
+          });
+        }
+      }
+    }
     return {
       recipeId: reusableId,
       source: "reused",
       tokensUsed: 0,
-      costCents: 0,
+      costCents: imageCost,
     };
   }
 

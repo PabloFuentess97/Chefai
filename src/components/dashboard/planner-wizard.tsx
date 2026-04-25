@@ -87,16 +87,18 @@ function nextMondayISO(): string {
 
 export function PlannerWizard({
   defaultGoal = null,
+  allowWeekly = true,
 }: {
   defaultGoal?: DietGoal | null;
+  allowWeekly?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = React.useState(1);
   const [direction, setDirection] = React.useState<1 | -1>(1);
   const [pending, startTransition] = React.useTransition();
   const [s, setS] = React.useState<State>({
-    type: "WEEKLY",
-    startDate: nextMondayISO(),
+    type: allowWeekly ? "WEEKLY" : "DAILY",
+    startDate: allowWeekly ? nextMondayISO() : todayISO(),
     goal: defaultGoal,
     difficulty: "",
     fast: false,
@@ -188,7 +190,7 @@ export function PlannerWizard({
             exit={{ opacity: 0, x: direction === 1 ? -24 : 24 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            {step === 1 && <Step1 state={s} update={update} />}
+            {step === 1 && <Step1 state={s} update={update} allowWeekly={allowWeekly} />}
             {step === 2 && <Step2 state={s} update={update} />}
             {step === 3 && <Step3 state={s} update={update} />}
             {step === 4 && <Step4 state={s} totalSlots={totalSlots} />}
@@ -236,9 +238,11 @@ export function PlannerWizard({
 function Step1({
   state,
   update,
+  allowWeekly,
 }: {
   state: State;
   update: <K extends keyof State>(k: K, v: State[K]) => void;
+  allowWeekly: boolean;
 }) {
   return (
     <div className="space-y-5">
@@ -263,7 +267,9 @@ function Step1({
         </SelectableCard>
         <SelectableCard
           active={state.type === "WEEKLY"}
+          disabled={!allowWeekly}
           onClick={() => {
+            if (!allowWeekly) return;
             update("type", "WEEKLY");
             update("startDate", nextMondayISO());
           }}
@@ -274,7 +280,14 @@ function Step1({
               state.type === "WEEKLY" ? "text-primary" : "text-muted-foreground"
             )}
           />
-          <p className="font-semibold">Menú semanal</p>
+          <p className="font-semibold">
+            Menú semanal
+            {!allowWeekly && (
+              <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-600">
+                Plan Chef
+              </span>
+            )}
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
             28 recetas para 7 días completos
           </p>
@@ -583,20 +596,26 @@ function SelectableCard({
   active,
   onClick,
   children,
+  disabled,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "rounded-xl border p-4 text-left transition-all active:scale-[0.98]",
-        active
-          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-          : "border-border hover:border-foreground/30 bg-card"
+        "rounded-xl border p-4 text-left transition-all",
+        !disabled && "active:scale-[0.98]",
+        disabled
+          ? "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+          : active
+            ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+            : "border-border hover:border-foreground/30 bg-card"
       )}
     >
       {children}

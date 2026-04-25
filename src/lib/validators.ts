@@ -96,6 +96,7 @@ export const upsertPlanSchema = z.object({
   pdfExport: z.coerce.boolean(),
   shoppingList: z.coerce.boolean(),
   weeklyPlanner: z.coerce.boolean(),
+  mealPlanner: z.coerce.boolean(),
   prioritySupport: z.coerce.boolean(),
   stripePriceId: z.string().trim().optional().nullable(),
   paypalPlanId: z.string().trim().optional().nullable(),

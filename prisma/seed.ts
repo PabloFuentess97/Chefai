@@ -38,7 +38,7 @@ async function main() {
     {
       slug: "pro",
       name: "Pro",
-      description: "Para entusiastas de la cocina. 50 recetas con imagen y PDF.",
+      description: "Para entusiastas de la cocina. 50 recetas con imagen, menús y PDF.",
       priceCents: 990,
       currency: "EUR",
       interval: BillingInterval.MONTH,
@@ -48,6 +48,7 @@ async function main() {
       pdfExport: true,
       shoppingList: true,
       weeklyPlanner: false,
+      mealPlanner: true,
       prioritySupport: false,
       sortOrder: 1,
     },
@@ -55,7 +56,7 @@ async function main() {
       slug: "chef",
       name: "Chef",
       description:
-        "Sin límites. Imágenes HD, planificador semanal y soporte prioritario.",
+        "Sin límites. Imágenes HD, menús semanales y soporte prioritario.",
       priceCents: 2490,
       currency: "EUR",
       interval: BillingInterval.MONTH,
@@ -65,6 +66,7 @@ async function main() {
       pdfExport: true,
       shoppingList: true,
       weeklyPlanner: true,
+      mealPlanner: true,
       prioritySupport: true,
       sortOrder: 2,
     },

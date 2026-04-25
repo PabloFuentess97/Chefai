@@ -5,6 +5,7 @@ export type PlanFeature =
   | "pdfExport"
   | "shoppingList"
   | "weeklyPlanner"
+  | "mealPlanner"
   | "prioritySupport";
 
 export type PublicPlan = Pick<

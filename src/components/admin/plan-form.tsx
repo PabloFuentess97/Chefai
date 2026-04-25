@@ -146,7 +146,8 @@ export function PlanForm({ plan, onDone }: Props) {
         <Toggle name="imagesEnabled" label="Imágenes" defaultChecked={plan?.imagesEnabled} />
         <Toggle name="pdfExport" label="PDF" defaultChecked={plan?.pdfExport} />
         <Toggle name="shoppingList" label="Lista compra" defaultChecked={plan?.shoppingList} />
-        <Toggle name="weeklyPlanner" label="Planificador" defaultChecked={plan?.weeklyPlanner} />
+        <Toggle name="mealPlanner" label="Menús" defaultChecked={plan?.mealPlanner} />
+        <Toggle name="weeklyPlanner" label="Menú semanal" defaultChecked={plan?.weeklyPlanner} />
         <Toggle name="prioritySupport" label="Soporte" defaultChecked={plan?.prioritySupport} />
         <Toggle name="isActive" label="Activo" defaultChecked={plan?.isActive ?? true} />
         <Toggle name="isPublic" label="Público" defaultChecked={plan?.isPublic ?? true} />

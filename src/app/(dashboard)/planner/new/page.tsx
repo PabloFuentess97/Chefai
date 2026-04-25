@@ -1,15 +1,21 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlannerWizard } from "@/components/dashboard/planner-wizard";
+import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import type { DietGoal } from "@/lib/diet-goals";
 
 export const metadata = { title: "Crear menú" };
 
 export default async function NewPlanPage() {
   const session = await requireUser();
+  const plan = await getCurrentPlan(session.id);
+  if (!planHasFeature(plan, "mealPlanner")) {
+    redirect("/planner");
+  }
   const user = await prisma.user.findUnique({
     where: { id: session.id },
     select: { preferredGoal: true },
@@ -38,6 +44,7 @@ export default async function NewPlanPage() {
         <CardContent className="pt-6">
           <PlannerWizard
             defaultGoal={(user?.preferredGoal as DietGoal | null) ?? null}
+            allowWeekly={planHasFeature(plan, "weeklyPlanner")}
           />
         </CardContent>
       </Card>

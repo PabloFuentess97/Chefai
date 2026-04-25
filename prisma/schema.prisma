@@ -94,6 +94,7 @@ model Plan {
   pdfExport       Boolean         @default(false)
   shoppingList    Boolean         @default(false)
   weeklyPlanner   Boolean         @default(false)
+  mealPlanner     Boolean         @default(false)
   prioritySupport Boolean         @default(false)
   stripePriceId   String?
   paypalPlanId    String?
