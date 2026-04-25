@@ -13,7 +13,10 @@ if [ -z "${EMAIL:-}" ]; then
   exit 1
 fi
 
-COMPOSE="docker compose -f docker/docker-compose.yml --env-file ../.env.production"
+# --env-file is resolved relative to the current working directory (the
+# project root), NOT relative to the compose file. Run this script from the
+# repo root: `bash docker/init-letsencrypt.sh`.
+COMPOSE="docker compose -f docker/docker-compose.yml --env-file .env.production"
 
 echo "1) Replacing DOMAIN in nginx.conf"
 sed -i.bak "s/DOMAIN/${DOMAIN}/g" docker/nginx.conf
