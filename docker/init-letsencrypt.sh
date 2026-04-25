@@ -13,10 +13,21 @@ if [ -z "${EMAIL:-}" ]; then
   exit 1
 fi
 
-# --env-file is resolved relative to the current working directory (the
-# project root), NOT relative to the compose file. Run this script from the
-# repo root: `bash docker/init-letsencrypt.sh`.
-COMPOSE="docker compose -f docker/docker-compose.yml --env-file .env.production"
+# Resolve repo root unambiguously so this works regardless of where the
+# script is invoked from.
+PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${PROJECT_ROOT}/.env.production"
+COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.yml"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: .env.production not found at $ENV_FILE" >&2
+  echo "       Create it from .env.example and try again." >&2
+  exit 1
+fi
+
+cd "$PROJECT_ROOT"
+
+COMPOSE="docker compose -f $COMPOSE_FILE --env-file $ENV_FILE"
 
 echo "1) Replacing DOMAIN in nginx.conf"
 sed -i.bak "s/DOMAIN/${DOMAIN}/g" docker/nginx.conf
