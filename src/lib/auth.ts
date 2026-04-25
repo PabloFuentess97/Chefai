@@ -13,6 +13,9 @@ import type { SessionUser } from "@/types/session";
 const SECRET = new TextEncoder().encode(env.JWT_SECRET);
 const TTL_DAYS = env.SESSION_TTL_DAYS;
 const COOKIE_NAME = env.SESSION_COOKIE_NAME;
+// Cookie Secure flag depends on whether the app is served over HTTPS,
+// not on NODE_ENV. This lets us run prod build over plain http://IP:3000.
+const COOKIE_SECURE = env.APP_URL.startsWith("https://");
 
 export type JwtPayload = {
   sub: string;
@@ -58,7 +61,7 @@ export async function setSessionCookie(token: string, expiresAt: Date) {
   c.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     expires: expiresAt,
     path: "/",
   });
@@ -69,7 +72,7 @@ export async function clearSessionCookie() {
   c.set(COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     expires: new Date(0),
     path: "/",
   });
