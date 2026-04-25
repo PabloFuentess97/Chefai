@@ -22,10 +22,12 @@ export function RecipeActions({
   recipeId,
   isFavorite,
   pdfEnabled,
+  isOwner = true,
 }: {
   recipeId: string;
   isFavorite: boolean;
   pdfEnabled: boolean;
+  isOwner?: boolean;
 }) {
   const router = useRouter();
   const [favPending, startFav] = React.useTransition();
@@ -76,17 +78,19 @@ export function RecipeActions({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button
-        variant="outline"
-        onClick={onToggleFav}
-        disabled={favPending}
-        aria-pressed={fav}
-      >
-        <Heart
-          className={fav ? "size-4 fill-pink-500 text-pink-500" : "size-4"}
-        />
-        {fav ? "Favorita" : "Marcar favorita"}
-      </Button>
+      {isOwner && (
+        <Button
+          variant="outline"
+          onClick={onToggleFav}
+          disabled={favPending}
+          aria-pressed={fav}
+        >
+          <Heart
+            className={fav ? "size-4 fill-pink-500 text-pink-500" : "size-4"}
+          />
+          {fav ? "Favorita" : "Marcar favorita"}
+        </Button>
+      )}
 
       <Button
         variant="outline"
@@ -122,16 +126,17 @@ export function RecipeActions({
         </Button>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger
-          render={
-            <Button variant="destructive">
-              <Trash2 className="size-4" />
-              Eliminar
-            </Button>
-          }
-        />
-        <DialogContent>
+      {isOwner && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger
+            render={
+              <Button variant="destructive">
+                <Trash2 className="size-4" />
+                Eliminar
+              </Button>
+            }
+          />
+          <DialogContent>
           <DialogHeader>
             <DialogTitle>¿Eliminar esta receta?</DialogTitle>
             <DialogDescription>
@@ -153,6 +158,7 @@ export function RecipeActions({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }

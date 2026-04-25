@@ -72,15 +72,11 @@ export async function addRecipeToShoppingListAction(
     where: { id: recipeId },
     include: { ingredients: { orderBy: { sortOrder: "asc" } } },
   });
-  if (!recipe || recipe.userId !== user.id) {
+  if (!recipe) {
     return fail("NOT_FOUND", "Receta no encontrada");
   }
-  const added = await upsertItems(
-    user.id,
-    recipe.ingredients,
-    recipeId,
-    1
-  );
+  // Allow adding ingredients from any recipe the user can view (community pool)
+  const added = await upsertItems(user.id, recipe.ingredients, recipeId, 1);
   revalidatePath("/shopping");
   return { ok: true, data: { added } };
 }

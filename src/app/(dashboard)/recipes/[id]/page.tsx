@@ -30,7 +30,10 @@ export default async function RecipeDetailPage({ params }: Props) {
     },
   });
 
-  if (!recipe || recipe.userId !== user.id) notFound();
+  if (!recipe) notFound();
+  // Recipes referenced by meal plans may belong to other users (community
+  // pool reuse). Allow read-only view; only the owner can edit/delete.
+  const isOwner = recipe.userId === user.id;
 
   const plan = await getCurrentPlan(user.id);
   const pdfEnabled = planHasFeature(plan, "pdfExport");
@@ -111,6 +114,7 @@ export default async function RecipeDetailPage({ params }: Props) {
             recipeId={recipe.id}
             isFavorite={recipe.isFavorite}
             pdfEnabled={pdfEnabled}
+            isOwner={isOwner}
           />
 
           <Card>

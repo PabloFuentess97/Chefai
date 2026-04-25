@@ -117,6 +117,10 @@ export async function createMealPlanAction(
       : "low"
   ) as "low" | "standard" | "hd";
 
+  // OpenAI image rate limit is ~5/min for gpt-image-1. Cap how many images
+  // we attempt during plan creation. Reused recipes already keep their image.
+  const imageBudget = { remaining: imagesEnabled ? (type === "DAILY" ? 4 : 6) : 0 };
+
   // Build all slot inputs
   type Slot = { dayIndex: number; slot: MealSlotEnum };
   const slots: Slot[] = [];
@@ -164,10 +168,16 @@ export async function createMealPlanAction(
     // 4 slots per day -> can run in parallel
     const day = await mapWithConcurrency(daySlots, 4, async (s) => {
       try {
+        // Decrement budget atomically (best-effort) before the slot tries an image.
+        let useImage = false;
+        if (imageBudget.remaining > 0) {
+          imageBudget.remaining -= 1;
+          useImage = true;
+        }
         const r = await resolveSlot({
           userId: user.id,
           input: buildSlotInput(s),
-          imagesEnabled,
+          imagesEnabled: useImage,
           imageQuality,
         });
         usedIds.add(r.recipeId);
