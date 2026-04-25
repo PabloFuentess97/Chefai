@@ -10,7 +10,28 @@ import {
 } from "./prompts";
 import type { GenerateRecipesInput } from "./validators";
 
-export const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+// Lazy init so importing this module doesn't crash at build time
+// (when OPENAI_API_KEY isn't available) for routes that only need helpers.
+let _client: OpenAI | null = null;
+export function getOpenAI(): OpenAI {
+  if (_client) return _client;
+  if (!env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY not configured");
+  }
+  _client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  return _client;
+}
+
+// Backwards-compatible Proxy: keep `openai.chat.completions.create(...)`
+// usage working without rewriting call sites. Each property access lazily
+// resolves through the real client.
+export const openai = new Proxy({} as OpenAI, {
+  get(_target, prop) {
+    const c = getOpenAI() as unknown as Record<string | symbol, unknown>;
+    const value = c[prop];
+    return typeof value === "function" ? value.bind(c) : value;
+  },
+});
 
 export type GenerateResult = {
   parsed: RecipesResponse;
