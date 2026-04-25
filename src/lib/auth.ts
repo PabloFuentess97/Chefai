@@ -15,7 +15,8 @@ const TTL_DAYS = env.SESSION_TTL_DAYS;
 const COOKIE_NAME = env.SESSION_COOKIE_NAME;
 // Cookie Secure flag depends on whether the app is served over HTTPS,
 // not on NODE_ENV. This lets us run prod build over plain http://IP:3000.
-const COOKIE_SECURE = env.APP_URL.startsWith("https://");
+// Read directly from process.env so it's safe during build with SKIP_ENV_VALIDATION.
+const COOKIE_SECURE = (process.env.APP_URL ?? "").startsWith("https://");
 
 export type JwtPayload = {
   sub: string;
