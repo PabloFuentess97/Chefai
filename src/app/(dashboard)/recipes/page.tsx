@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Heart, BookOpen } from "lucide-react";
+import { Sparkles, Heart, BookOpen, BookMarked } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { RecipeCard } from "@/components/dashboard/recipe-card";
@@ -55,10 +55,19 @@ export default async function RecipesPage({ searchParams }: Props) {
               : "Tu recetario personal."}
           </p>
         </div>
-        <Button render={<Link href="/generate" />}>
-          <Sparkles className="size-4" />
-          Generar más
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            render={<Link href="/cookbook" />}
+          >
+            <BookMarked className="size-4" />
+            Mi recetario
+          </Button>
+          <Button render={<Link href="/generate" />}>
+            <Sparkles className="size-4" />
+            Generar más
+          </Button>
+        </div>
       </div>
 
       {!showingHighlight && (

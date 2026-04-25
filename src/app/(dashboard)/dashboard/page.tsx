@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Sparkles, BookOpen, Heart, CalendarClock } from "lucide-react";
+import {
+  Sparkles,
+  BookOpen,
+  Heart,
+  CalendarClock,
+  BookMarked,
+  ArrowRight,
+} from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getCurrentPlan } from "@/lib/plans";
 import { getUsage } from "@/lib/usage";
@@ -114,6 +121,41 @@ export default async function DashboardHome() {
         </Card>
       )}
 
+      {favorites > 0 && (
+        <Card
+          className="overflow-hidden border-0 text-white"
+          style={{
+            background: `linear-gradient(135deg, var(--brand) 0%, color-mix(in oklab, var(--brand) 30%, #000) 100%)`,
+          }}
+        >
+          <CardContent className="p-6 md:p-8 flex flex-wrap items-center gap-6">
+            <div className="size-14 grid place-items-center rounded-2xl bg-white/15 backdrop-blur shrink-0">
+              <BookMarked className="size-7" />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <p className="text-xs uppercase tracking-[3px] opacity-80 font-bold">
+                Tu recetario
+              </p>
+              <p className="text-xl md:text-2xl font-bold mt-1 leading-tight">
+                Tienes {favorites} {favorites === 1 ? "favorita" : "favoritas"} —
+                hazlas libro.
+              </p>
+              <p className="text-sm opacity-85 mt-1">
+                Maquetado tipo revista, listo para imprimir.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="lg"
+              render={<Link href="/cookbook" />}
+            >
+              Crear recetario
+              <ArrowRight className="size-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium">
@@ -128,6 +170,10 @@ export default async function DashboardHome() {
           <Button variant="outline" render={<Link href="/recipes" />}>
             <BookOpen className="size-4" />
             Ver historial
+          </Button>
+          <Button variant="outline" render={<Link href="/cookbook" />}>
+            <BookMarked className="size-4" />
+            Mi recetario
           </Button>
           <Button variant="outline" render={<Link href="/billing" />}>
             Cambiar plan

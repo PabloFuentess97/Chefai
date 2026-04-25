@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Sparkles,
   BookOpen,
+  BookMarked,
   CreditCard,
   Settings,
   ShieldCheck,
@@ -17,6 +18,7 @@ const NAV = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { href: "/generate", label: "Generar", icon: Sparkles },
   { href: "/recipes", label: "Mis recetas", icon: BookOpen },
+  { href: "/cookbook", label: "Mi recetario", icon: BookMarked },
   { href: "/billing", label: "Facturación", icon: CreditCard },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
