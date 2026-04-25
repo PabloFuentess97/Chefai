@@ -11,7 +11,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
-import { Brand } from "@/components/shared/brand";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -22,13 +21,17 @@ const NAV = [
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
-export function Sidebar({ role }: { role: Role }) {
+export function Sidebar({
+  role,
+  brand,
+}: {
+  role: Role;
+  brand: React.ReactNode;
+}) {
   const pathname = usePathname();
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r bg-sidebar">
-      <div className="px-6 py-5 border-b">
-        <Brand />
-      </div>
+      <div className="px-6 py-5 border-b">{brand}</div>
       <nav className="flex-1 p-3 space-y-0.5">
         {NAV.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
