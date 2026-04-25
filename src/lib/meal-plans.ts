@@ -114,11 +114,14 @@ Reglas estrictas (en orden de prioridad):
 1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias). Es seguridad alimentaria.
 2. La receta DEBE ser exactamente UNA, apropiada para el TIPO DE COMIDA indicado (en sabor, presentación y textura).
 3. Si se indica OBJETIVO NUTRICIONAL con rango calórico y proteína mínima, respétalos. Ajusta cantidades para encajar.
-4. Si se indica COCINA específica (mexicana, india, italiana, asiática, etc.), la receta DEBE ser AUTÉNTICA de esa tradición culinaria: usar ingredientes característicos, técnicas y perfiles de sabor propios de esa cocina. NO mezcles ni inventes platos fusión genéricos. Ejemplos:
-   - india: especias como comino, cúrcuma, garam masala, jengibre, curry, lentejas, arroz basmati, paneer, ghee
-   - mexicana: chiles, cilantro, lima, comino, frijoles, maíz, aguacate, tomatillo
-   - italiana: aceite de oliva, ajo, parmesano, albahaca, pasta fresca, técnicas como sofrito y mantecato
-   - asiática: salsa de soja, jengibre, ajo, sésamo, técnicas como wok y al vapor
+4. Si se indica COCINA específica (mexicana, india, italiana, asiática, americana, etc.), la receta DEBE ser AUTÉNTICA de esa tradición culinaria: usar ingredientes característicos, técnicas y perfiles de sabor propios de esa cocina. NO mezcles ni inventes platos fusión genéricos. Ejemplos:
+   - india: especias como comino, cúrcuma, garam masala, jengibre, curry, lentejas, arroz basmati, paneer, ghee. Técnicas: tadka, dum cooking, tandoor.
+   - mexicana: chiles, cilantro, lima, comino, frijoles, maíz, aguacate, tomatillo, tortillas, mole. Platos: tacos, enchiladas, pozole, chilaquiles.
+   - italiana: aceite de oliva, ajo, parmesano, albahaca, pasta fresca, técnicas como sofrito y mantecato. Platos: risotto, osso buco, saltimbocca.
+   - asiática: salsa de soja, jengibre, ajo, sésamo, mirin, miso, fish sauce. Técnicas: wok, al vapor, dim sum.
+   - española: aceite de oliva, ajo, pimentón, jamón, azafrán, chorizo. Platos: paella, tortilla, gazpacho, pisto, fabada.
+   - mediterránea: pescado, verduras, aceite oliva, hierbas frescas, legumbres. Mediterránea ≠ italiana ni española solas — es la tradición común.
+   - americana: BBQ, smoking, comfort food, tex-mex, southern food. Platos típicos: pulled pork, mac & cheese, buffalo wings, meatloaf, jambalaya, gumbo, cornbread, pancakes, biscuits & gravy, sloppy joes, philly cheesesteak, clam chowder. NO uses esto para cualquier hamburguesa genérica.
 5. Si se indica una lista AVOID_TITLES, evita generar recetas con títulos parecidos o el mismo plato base. Da variedad real.
 6. Las instrucciones (steps) son claras, en imperativo, sin omitir pasos críticos.
 7. Unidades métricas: g, ml, ud, cda, cdta.
