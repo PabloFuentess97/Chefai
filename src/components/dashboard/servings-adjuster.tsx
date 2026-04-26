@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Minus, Plus } from "lucide-react";
+import { IngredientSubstitute } from "./ingredient-substitute";
 
 type Ingredient = {
   id: string;
@@ -19,9 +20,11 @@ type Ingredient = {
 export function ServingsAdjuster({
   baseServings,
   ingredients,
+  recipeId,
 }: {
   baseServings: number;
   ingredients: Ingredient[];
+  recipeId: string;
 }) {
   const [servings, setServings] = React.useState(baseServings);
   const ratio = servings / baseServings;
@@ -59,9 +62,9 @@ export function ServingsAdjuster({
           return (
             <li
               key={ing.id}
-              className="flex items-baseline justify-between gap-3 py-1.5 border-b border-border/40 last:border-b-0"
+              className="group flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-b-0"
             >
-              <span className="text-sm">
+              <span className="text-sm flex-1">
                 {ing.name}
                 {ing.suggested && (
                   <span className="ml-1.5 text-[10px] uppercase tracking-wider rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5">
@@ -74,13 +77,20 @@ export function ServingsAdjuster({
                   </span>
                 )}
               </span>
-              <span className="text-sm font-medium tabular-nums">
+              <span className="text-sm font-medium tabular-nums shrink-0">
                 {formatQty(q)} {ing.unit}
               </span>
+              <IngredientSubstitute
+                recipeId={recipeId}
+                ingredientName={ing.name}
+              />
             </li>
           );
         })}
       </ul>
+      <p className="text-[10px] text-muted-foreground pt-1">
+        Pasa el ratón sobre un ingrediente para ver alternativas
+      </p>
     </div>
   );
 }

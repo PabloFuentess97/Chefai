@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ServingsAdjuster } from "@/components/dashboard/servings-adjuster";
 import { RecipeActions } from "@/components/dashboard/recipe-actions";
+import { CookingModeButton } from "@/components/dashboard/cooking-mode";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -117,6 +118,16 @@ export default async function RecipeDetailPage({ params }: Props) {
             isOwner={isOwner}
           />
 
+          <CookingModeButton
+            recipeTitle={recipe.title}
+            steps={recipe.steps.map((s) => ({
+              id: s.id,
+              order: s.order,
+              content: s.content,
+              durationMin: s.durationMin,
+            }))}
+          />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -155,6 +166,7 @@ export default async function RecipeDetailPage({ params }: Props) {
               <ServingsAdjuster
                 baseServings={recipe.servings}
                 ingredients={recipe.ingredients}
+                recipeId={recipe.id}
               />
             </CardContent>
           </Card>

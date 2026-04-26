@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChipsInput } from "./chips-input";
+import { FridgePhotoButton } from "./fridge-photo-button";
 import { generateRecipesAction } from "@/actions/recipes";
 import {
   MEAL_TYPES,
@@ -399,10 +400,21 @@ function Step3({
           placeholder="pollo, arroz, limón… pulsa Enter"
           ariaLabel="Ingredientes disponibles"
         />
-        <p className="text-xs text-muted-foreground">
-          Pulsa <kbd className="rounded border bg-muted px-1">Enter</kbd> o{" "}
-          <kbd className="rounded border bg-muted px-1">,</kbd> para añadir.
-        </p>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <FridgePhotoButton
+            onDetected={(detected) => {
+              const merged = Array.from(
+                new Set([...state.ingredients, ...detected])
+              );
+              update("ingredients", merged);
+            }}
+          />
+          <p className="text-xs text-muted-foreground flex-1">
+            Pulsa <kbd className="rounded border bg-muted px-1">Enter</kbd> o{" "}
+            <kbd className="rounded border bg-muted px-1">,</kbd> para añadir
+            a mano, o usa la cámara.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">
