@@ -1,8 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { openai } from "@/lib/openai";
-import { env } from "@/env";
+import { analyzeImage } from "@/lib/ai/text";
 import { requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -58,35 +57,23 @@ export async function detectIngredientsFromImageAction(
   const dataUrl = `data:${mime};base64,${base64}`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: env.OPENAI_TEXT_MODEL,
-      response_format: { type: "json_object" },
+    const result = await analyzeImage({
+      systemPrompt: SYSTEM_PROMPT,
+      userText:
+        "Identifica los ingredientes comestibles que veas en esta foto.",
+      imageDataUrl: dataUrl,
+      jsonResponse: true,
       temperature: 0.2,
-      max_tokens: 500,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Identifica los ingredientes comestibles que veas en esta foto.",
-            },
-            {
-              type: "image_url",
-              image_url: { url: dataUrl, detail: "high" },
-            },
-          ],
-        },
-      ],
+      maxTokens: 500,
     });
-
-    const raw = completion.choices[0]?.message?.content;
-    if (!raw) return fail("OPENAI", "Respuesta vacía");
-    const parsed = responseSchema.parse(JSON.parse(raw));
+    if (!result.content) return fail("AI", "Respuesta vacía");
+    const parsed = responseSchema.parse(JSON.parse(result.content));
     return { ok: true, data: parsed };
   } catch (e) {
     logger.error({ err: e, userId: user.id }, "vision detection failed");
-    return fail("OPENAI", "No hemos podido analizar la foto. Inténtalo de nuevo.");
+    return fail(
+      "AI",
+      "No hemos podido analizar la foto. Inténtalo de nuevo."
+    );
   }
 }

@@ -4,9 +4,10 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { prisma } from "./db";
-import { openai } from "./openai";
 import { env } from "@/env";
 import { enqueueImageJob, getQueue } from "./queue";
+import { generateText } from "./ai/text";
+import { generateImageBase64 } from "./ai/image";
 import {
   recipesResponseSchema,
   IMAGE_PROMPT_PREFIX,
@@ -178,44 +179,26 @@ Devuelve estrictamente este JSON con UNA sola receta dentro de "recipes":
 } ] }`;
 }
 
-const TEXT_INPUT_USD_PER_1M = 0.15;
-const TEXT_OUTPUT_USD_PER_1M = 0.6;
-const IMAGE_USD_BY_QUALITY: Record<string, number> = {
-  low: 0.02,
-  standard: 0.04,
-  hd: 0.08,
-};
-const EUR_PER_USD = 0.93;
-
 async function generateOneRecipeForSlot(input: SlotInput) {
-  const completion = await openai.chat.completions.create({
-    model: env.OPENAI_TEXT_MODEL,
-    response_format: { type: "json_object" },
+  const result = await generateText({
+    systemPrompt: SLOT_SYSTEM_PROMPT,
+    userPrompt: buildSlotUserPrompt(input),
+    jsonResponse: true,
     temperature: 0.85,
-    max_tokens: 1500,
-    messages: [
-      { role: "system", content: SLOT_SYSTEM_PROMPT },
-      { role: "user", content: buildSlotUserPrompt(input) },
-    ],
+    maxTokens: 1500,
   });
 
-  const raw = completion.choices[0]?.message?.content;
-  if (!raw) throw new Error("OpenAI returned empty content for slot");
+  if (!result.content) throw new Error("AI returned empty content for slot");
 
-  const parsed = recipesResponseSchema.parse(JSON.parse(raw));
+  const parsed = recipesResponseSchema.parse(JSON.parse(result.content));
   const r = parsed.recipes[0];
-  if (!r) throw new Error("OpenAI returned no recipe for slot");
+  if (!r) throw new Error("AI returned no recipe for slot");
 
-  const inputTokens = completion.usage?.prompt_tokens ?? 0;
-  const outputTokens = completion.usage?.completion_tokens ?? 0;
-  const totalTokens = inputTokens + outputTokens;
-  const costUsd =
-    (inputTokens * TEXT_INPUT_USD_PER_1M +
-      outputTokens * TEXT_OUTPUT_USD_PER_1M) /
-    1_000_000;
-  const costCents = Math.ceil(costUsd * EUR_PER_USD * 100);
-
-  return { recipe: r, tokens: totalTokens, costCents };
+  return {
+    recipe: r,
+    tokens: result.inputTokens + result.outputTokens,
+    costCents: result.costCents,
+  };
 }
 
 // In-process semaphore — caps concurrent image calls so we don't blast
@@ -258,20 +241,6 @@ function parseRetryAfter(message: string): number {
   return 15;
 }
 
-async function callOpenAIImage(
-  imagePrompt: string,
-  quality: "low" | "standard" | "hd"
-) {
-  return openai.images.generate({
-    model: env.OPENAI_IMAGE_MODEL,
-    prompt: `${IMAGE_PROMPT_PREFIX} ${imagePrompt}`,
-    size: "1024x1024",
-    quality:
-      quality === "hd" ? "high" : quality === "standard" ? "medium" : "low",
-    n: 1,
-  });
-}
-
 async function maybeGenerateImage(
   imagePrompt: string,
   enabled: boolean,
@@ -284,12 +253,11 @@ async function maybeGenerateImage(
     let attempt = 0;
     while (attempt < 2) {
       try {
-        const r = await callOpenAIImage(imagePrompt, quality);
-        const b64 = r.data?.[0]?.b64_json ?? null;
-        const costUsd =
-          IMAGE_USD_BY_QUALITY[quality] ?? IMAGE_USD_BY_QUALITY.standard;
-        const costCents = Math.ceil(costUsd * EUR_PER_USD * 100);
-        return { b64, costCents };
+        const r = await generateImageBase64({
+          prompt: `${IMAGE_PROMPT_PREFIX} ${imagePrompt}`,
+          quality,
+        });
+        return { b64: r.b64, costCents: r.costCents };
       } catch (e) {
         const err = e as { status?: number; message?: string };
         if (err?.status === 429 && attempt === 0) {

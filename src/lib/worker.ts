@@ -5,7 +5,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import { getRedisConnection, QUEUE, type ImageJobData } from "./queue";
-import { openai } from "./openai";
+import { generateImageBase64 } from "./ai/image";
 import { env } from "@/env";
 import { prisma } from "./db";
 import { logger } from "./logger";
@@ -38,18 +38,16 @@ export function startImageWorker(): void {
         return;
       }
 
-      const r = await openai.images.generate({
-        model: env.OPENAI_IMAGE_MODEL,
-        prompt: `${IMAGE_PROMPT_PREFIX} ${imagePrompt}`,
-        size: "1024x1024",
-        quality:
-          quality === "hd" ? "high" : quality === "standard" ? "medium" : "low",
-        n: 1,
-      });
-      const b64 = r.data?.[0]?.b64_json;
-      if (!b64) {
-        logger.warn({ recipeId }, "image worker: no b64 returned");
-        return;
+      let b64: string;
+      try {
+        const r = await generateImageBase64({
+          prompt: `${IMAGE_PROMPT_PREFIX} ${imagePrompt}`,
+          quality,
+        });
+        b64 = r.b64;
+      } catch (e) {
+        logger.warn({ err: e, recipeId }, "image worker: provider error");
+        throw e; // Let BullMQ retry per job's backoff config
       }
 
       const dir = path.resolve(process.cwd(), env.UPLOADS_DIR, userId);

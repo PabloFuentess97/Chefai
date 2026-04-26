@@ -9,9 +9,12 @@ import {
   type RecipesResponse,
 } from "./prompts";
 import type { GenerateRecipesInput } from "./validators";
+import { generateText } from "./ai/text";
+import { generateImageBase64, type ImageQuality } from "./ai/image";
 
-// Lazy init so importing this module doesn't crash at build time
-// (when OPENAI_API_KEY isn't available) for routes that only need helpers.
+// ----- OpenAI client (still used by direct callers and as the OpenAI
+// implementation in the provider abstraction) ---------------------------
+
 let _client: OpenAI | null = null;
 export function getOpenAI(): OpenAI {
   if (_client) return _client;
@@ -38,71 +41,43 @@ export type GenerateResult = {
   usage: { tokens: number; costCents: number };
 };
 
-const TEXT_INPUT_USD_PER_1M = 0.15;
-const TEXT_OUTPUT_USD_PER_1M = 0.6;
-const IMAGE_USD_BY_QUALITY: Record<string, number> = {
-  low: 0.02,
-  standard: 0.04,
-  hd: 0.08,
-};
-const EUR_PER_USD = 0.93;
+// ----- Recipe text generation (uses the provider abstraction) ----------
 
 export async function generateRecipes(
   input: GenerateRecipesInput
 ): Promise<GenerateResult> {
   const userPrompt = buildUserPrompt(input);
 
-  const completion = await openai.chat.completions.create({
-    model: env.OPENAI_TEXT_MODEL,
-    response_format: { type: "json_object" },
+  const result = await generateText({
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt,
+    jsonResponse: true,
     temperature: 0.85,
-    max_tokens: 4000,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
-    ],
+    maxTokens: 4000,
   });
 
-  const raw = completion.choices[0]?.message?.content;
-  if (!raw) throw new Error("OpenAI returned empty content");
-
-  const json = JSON.parse(raw);
+  if (!result.content) throw new Error("AI returned empty content");
+  const json = JSON.parse(result.content);
   const parsed = recipesResponseSchema.parse(json);
 
-  const inputTokens = completion.usage?.prompt_tokens ?? 0;
-  const outputTokens = completion.usage?.completion_tokens ?? 0;
-  const totalTokens = inputTokens + outputTokens;
-
-  const costUsd =
-    (inputTokens * TEXT_INPUT_USD_PER_1M +
-      outputTokens * TEXT_OUTPUT_USD_PER_1M) /
-    1_000_000;
-  const costCents = Math.ceil(costUsd * EUR_PER_USD * 100);
-
-  return { parsed, usage: { tokens: totalTokens, costCents } };
+  return {
+    parsed,
+    usage: {
+      tokens: result.inputTokens + result.outputTokens,
+      costCents: result.costCents,
+    },
+  };
 }
 
-export type ImageQuality = "low" | "standard" | "hd";
+// ----- Recipe image generation (uses the provider abstraction) ---------
+
+export type { ImageQuality };
 
 export async function generateRecipeImage(
   rawImagePrompt: string,
   quality: ImageQuality
 ): Promise<{ b64: string; costCents: number }> {
   const prompt = buildImagePrompt(rawImagePrompt);
-
-  const r = await openai.images.generate({
-    model: env.OPENAI_IMAGE_MODEL,
-    prompt,
-    size: "1024x1024",
-    quality: quality === "hd" ? "high" : quality === "standard" ? "medium" : "low",
-    n: 1,
-  });
-
-  const b64 = r.data?.[0]?.b64_json;
-  if (!b64) throw new Error("OpenAI image: no b64_json returned");
-
-  const costUsd = IMAGE_USD_BY_QUALITY[quality] ?? IMAGE_USD_BY_QUALITY.standard;
-  const costCents = Math.ceil(costUsd * EUR_PER_USD * 100);
-
-  return { b64, costCents };
+  const result = await generateImageBase64({ prompt, quality });
+  return { b64: result.b64, costCents: result.costCents };
 }

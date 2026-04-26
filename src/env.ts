@@ -22,6 +22,16 @@ export const env = createEnv({
     OPENAI_TEXT_MODEL: z.string().default("gpt-4o-mini"),
     OPENAI_IMAGE_MODEL: z.string().default("gpt-image-1"),
 
+    // Provider switches: choose where text generation and image generation
+    // are routed. OpenAI is always the default, fully backward compatible.
+    TEXT_PROVIDER: z.enum(["openai", "gemini"]).default("openai"),
+    IMAGE_PROVIDER: z.enum(["openai", "fal"]).default("openai"),
+
+    GEMINI_API_KEY: z.string().optional(),
+    GEMINI_TEXT_MODEL: z.string().default("gemini-2.0-flash"),
+    FAL_KEY: z.string().optional(),
+    FAL_IMAGE_MODEL: z.string().default("fal-ai/flux/dev"),
+
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
@@ -60,6 +70,13 @@ export const env = createEnv({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     OPENAI_TEXT_MODEL: process.env.OPENAI_TEXT_MODEL,
     OPENAI_IMAGE_MODEL: process.env.OPENAI_IMAGE_MODEL,
+
+    TEXT_PROVIDER: process.env.TEXT_PROVIDER,
+    IMAGE_PROVIDER: process.env.IMAGE_PROVIDER,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_TEXT_MODEL: process.env.GEMINI_TEXT_MODEL,
+    FAL_KEY: process.env.FAL_KEY,
+    FAL_IMAGE_MODEL: process.env.FAL_IMAGE_MODEL,
 
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
