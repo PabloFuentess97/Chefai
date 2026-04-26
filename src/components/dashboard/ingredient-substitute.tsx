@@ -20,13 +20,17 @@ import {
 export function IngredientSubstitute({
   recipeId,
   ingredientName,
+  enabled = true,
 }: {
   recipeId: string;
   ingredientName: string;
+  enabled?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<SubstitutionResult | null>(null);
+
+  if (!enabled) return null;
 
   async function load() {
     if (result || pending) return;

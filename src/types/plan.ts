@@ -3,9 +3,13 @@ import type { Plan } from "@prisma/client";
 export type PlanFeature =
   | "imagesEnabled"
   | "pdfExport"
+  | "cookbookExport"
   | "shoppingList"
   | "weeklyPlanner"
   | "mealPlanner"
+  | "voiceCooking"
+  | "fridgePhoto"
+  | "substitutions"
   | "prioritySupport";
 
 export type PublicPlan = Pick<

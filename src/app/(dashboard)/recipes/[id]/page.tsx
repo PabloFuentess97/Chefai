@@ -38,6 +38,8 @@ export default async function RecipeDetailPage({ params }: Props) {
 
   const plan = await getCurrentPlan(user.id);
   const pdfEnabled = planHasFeature(plan, "pdfExport");
+  const voiceEnabled = planHasFeature(plan, "voiceCooking");
+  const subsEnabled = planHasFeature(plan, "substitutions");
   const totalTime = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
 
   return (
@@ -120,6 +122,7 @@ export default async function RecipeDetailPage({ params }: Props) {
 
           <CookingModeButton
             recipeTitle={recipe.title}
+            enabled={voiceEnabled}
             steps={recipe.steps.map((s) => ({
               id: s.id,
               order: s.order,
@@ -167,6 +170,7 @@ export default async function RecipeDetailPage({ params }: Props) {
                 baseServings={recipe.servings}
                 ingredients={recipe.ingredients}
                 recipeId={recipe.id}
+                substitutionsEnabled={subsEnabled}
               />
             </CardContent>
           </Card>

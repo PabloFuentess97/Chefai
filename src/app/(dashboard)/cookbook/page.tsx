@@ -25,7 +25,7 @@ export default async function CookbookPage() {
   const user = await requireUser();
   const branding = await getBranding();
   const plan = await getCurrentPlan(user.id);
-  const enabled = planHasFeature(plan, "pdfExport");
+  const enabled = planHasFeature(plan, "cookbookExport");
 
   const favorites = await prisma.recipe.findMany({
     where: { userId: user.id, isFavorite: true },

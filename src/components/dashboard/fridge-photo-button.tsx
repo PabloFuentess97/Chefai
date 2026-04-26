@@ -8,14 +8,31 @@ import { detectIngredientsFromImageAction } from "@/actions/vision";
 
 export function FridgePhotoButton({
   onDetected,
+  enabled = true,
 }: {
   onDetected: (ingredients: string[]) => void;
+  enabled?: boolean;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [pending, setPending] = React.useState(false);
 
   function open() {
     inputRef.current?.click();
+  }
+
+  if (!enabled) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        disabled
+        title="Disponible en plan Pro o superior"
+        className="w-full sm:w-auto"
+      >
+        <Camera className="size-4" />
+        Foto de la nevera · Pro
+      </Button>
+    );
   }
 
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {

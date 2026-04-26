@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { analyzeImage } from "@/lib/ai/text";
 import { requireUser } from "@/lib/auth";
+import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import type { ActionResult } from "@/types/session";
@@ -34,6 +35,14 @@ export async function detectIngredientsFromImageAction(
   formData: FormData
 ): Promise<ActionResult<DetectResult>> {
   const user = await requireUser();
+
+  const plan = await getCurrentPlan(user.id);
+  if (!planHasFeature(plan, "fridgePhoto")) {
+    return fail(
+      "FORBIDDEN",
+      "La foto de la nevera está disponible en planes superiores"
+    );
+  }
 
   const file = formData.get("image");
   if (!(file instanceof File)) {

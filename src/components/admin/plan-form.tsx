@@ -142,15 +142,99 @@ export function PlanForm({ plan, onDone }: Props) {
           defaultValue={plan?.sortOrder ?? 0}
         />
       </Field>
-      <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-lg border p-4">
-        <Toggle name="imagesEnabled" label="Imágenes" defaultChecked={plan?.imagesEnabled} />
-        <Toggle name="pdfExport" label="PDF" defaultChecked={plan?.pdfExport} />
-        <Toggle name="shoppingList" label="Lista compra" defaultChecked={plan?.shoppingList} />
-        <Toggle name="mealPlanner" label="Menús" defaultChecked={plan?.mealPlanner} />
-        <Toggle name="weeklyPlanner" label="Menú semanal" defaultChecked={plan?.weeklyPlanner} />
-        <Toggle name="prioritySupport" label="Soporte" defaultChecked={plan?.prioritySupport} />
-        <Toggle name="isActive" label="Activo" defaultChecked={plan?.isActive ?? true} />
-        <Toggle name="isPublic" label="Público" defaultChecked={plan?.isPublic ?? true} />
+      <div className="md:col-span-2 space-y-4">
+        <FeatureGroup
+          title="Funciones IA"
+          subtitle="Las que cuestan tokens reales en cada uso"
+        >
+          <Toggle
+            name="imagesEnabled"
+            label="Imágenes en recetas"
+            description="Generar foto IA por receta"
+            defaultChecked={plan?.imagesEnabled}
+          />
+          <Toggle
+            name="fridgePhoto"
+            label="Foto de la nevera"
+            description="Detectar ingredientes con visión IA"
+            defaultChecked={plan?.fridgePhoto}
+          />
+          <Toggle
+            name="substitutions"
+            label="Sustitutos IA"
+            description="Sugerencias de ingredientes alternativos"
+            defaultChecked={plan?.substitutions}
+          />
+        </FeatureGroup>
+
+        <FeatureGroup
+          title="Planificación y compra"
+          subtitle="Organiza la semana"
+        >
+          <Toggle
+            name="mealPlanner"
+            label="Menús"
+            description="Crear menús diarios"
+            defaultChecked={plan?.mealPlanner}
+          />
+          <Toggle
+            name="weeklyPlanner"
+            label="Menú semanal"
+            description="7 días × 4 platos"
+            defaultChecked={plan?.weeklyPlanner}
+          />
+          <Toggle
+            name="shoppingList"
+            label="Lista de la compra"
+            description="Auto-genera y deduplica"
+            defaultChecked={plan?.shoppingList}
+          />
+        </FeatureGroup>
+
+        <FeatureGroup
+          title="Cocina y exports"
+          subtitle="Cómo usan las recetas"
+        >
+          <Toggle
+            name="voiceCooking"
+            label="Cocina por voz"
+            description="Modo paso a paso con TTS y timer"
+            defaultChecked={plan?.voiceCooking}
+          />
+          <Toggle
+            name="pdfExport"
+            label="PDF receta individual"
+            description="Descarga una receta en PDF"
+            defaultChecked={plan?.pdfExport}
+          />
+          <Toggle
+            name="cookbookExport"
+            label="Recetario PDF"
+            description="Cookbook tipo revista con favoritas"
+            defaultChecked={plan?.cookbookExport}
+          />
+        </FeatureGroup>
+
+        <FeatureGroup title="Otros" subtitle="Soporte y visibilidad">
+          <Toggle
+            name="prioritySupport"
+            label="Soporte prioritario"
+            description="Respuesta < 24h"
+            defaultChecked={plan?.prioritySupport}
+          />
+          <Toggle
+            name="isActive"
+            label="Activo"
+            description="Si OFF, oculto a todos"
+            defaultChecked={plan?.isActive ?? true}
+          />
+          <Toggle
+            name="isPublic"
+            label="Público"
+            description="Si OFF, no aparece en /pricing"
+            defaultChecked={plan?.isPublic ?? true}
+          />
+        </FeatureGroup>
       </div>
       <div className="md:col-span-2 flex justify-end gap-2">
         <Button type="submit" disabled={pending}>
@@ -180,28 +264,56 @@ function Field({
   );
 }
 
+function FeatureGroup({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="mb-3">
+        <p className="font-semibold text-sm">{title}</p>
+        {subtitle && (
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        )}
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{children}</div>
+    </div>
+  );
+}
+
 function Toggle({
   name,
   label,
+  description,
   defaultChecked,
 }: {
   name: string;
   label: string;
+  description?: string;
   defaultChecked?: boolean;
 }) {
   const [checked, setChecked] = React.useState(!!defaultChecked);
   return (
-    <label className="flex items-center justify-between gap-2 text-sm">
-      <span>{label}</span>
+    <label className="flex items-start gap-3 rounded-lg border bg-background p-3 cursor-pointer hover:bg-muted/30 transition">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium leading-tight">{label}</p>
+        {description && (
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+            {description}
+          </p>
+        )}
+      </div>
       <Switch
         checked={checked}
         onCheckedChange={(v) => setChecked(Boolean(v))}
+        className="shrink-0 mt-0.5"
       />
-      <input
-        type="hidden"
-        name={name}
-        value={checked ? "on" : ""}
-      />
+      <input type="hidden" name={name} value={checked ? "on" : ""} />
     </label>
   );
 }

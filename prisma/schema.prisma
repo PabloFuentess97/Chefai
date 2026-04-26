@@ -92,9 +92,13 @@ model Plan {
   imagesEnabled   Boolean         @default(false)
   imageQuality    String          @default("low")
   pdfExport       Boolean         @default(false)
+  cookbookExport  Boolean         @default(false)
   shoppingList    Boolean         @default(false)
   weeklyPlanner   Boolean         @default(false)
   mealPlanner     Boolean         @default(false)
+  voiceCooking    Boolean         @default(false)
+  fridgePhoto     Boolean         @default(false)
+  substitutions   Boolean         @default(false)
   prioritySupport Boolean         @default(false)
   stripePriceId   String?
   paypalPlanId    String?

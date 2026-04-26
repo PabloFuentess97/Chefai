@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getCurrentPlan } from "@/lib/plans";
+import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { getUsage } from "@/lib/usage";
 import { Card, CardContent } from "@/components/ui/card";
 import { GenerateWizard } from "@/components/dashboard/generate-wizard";
@@ -60,6 +60,7 @@ export default async function GeneratePage() {
         <CardContent className="pt-6">
           <GenerateWizard
             defaultGoal={(user?.preferredGoal as DietGoal | null) ?? null}
+            fridgePhotoEnabled={planHasFeature(plan, "fridgePhoto")}
           />
         </CardContent>
       </Card>

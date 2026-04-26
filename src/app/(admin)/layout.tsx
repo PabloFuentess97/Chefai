@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { Brand } from "@/components/shared/brand";
+import { AdminSubnav } from "@/components/admin/admin-subnav";
 import { getCurrentPlan } from "@/lib/plans";
 
 export default async function AdminLayout({
@@ -25,7 +26,10 @@ export default async function AdminLayout({
           brand={<Brand showName={false} />}
         />
         <main className="flex-1 px-4 py-5 md:px-6 md:py-8 pb-28 lg:pb-8">
-          <div className="mx-auto max-w-6xl">{children}</div>
+          <div className="mx-auto max-w-6xl">
+            <AdminSubnav />
+            {children}
+          </div>
         </main>
       </div>
       <MobileNav role={user.role} />

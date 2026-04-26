@@ -89,8 +89,10 @@ const STEPS = [
 
 export function GenerateWizard({
   defaultGoal = null,
+  fridgePhotoEnabled = true,
 }: {
   defaultGoal?: DietGoal | null;
+  fridgePhotoEnabled?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = React.useState(1);
@@ -205,7 +207,13 @@ export function GenerateWizard({
               />
             )}
             {step === 2 && <Step2 state={s} update={update} />}
-            {step === 3 && <Step3 state={s} update={update} />}
+            {step === 3 && (
+              <Step3
+                state={s}
+                update={update}
+                fridgePhotoEnabled={fridgePhotoEnabled}
+              />
+            )}
             {step === 4 && <Step4 state={s} update={update} />}
           </motion.div>
         </AnimatePresence>
@@ -394,9 +402,11 @@ function Step2({
 function Step3({
   state,
   update,
+  fridgePhotoEnabled,
 }: {
   state: State;
   update: <K extends keyof State>(k: K, v: State[K]) => void;
+  fridgePhotoEnabled: boolean;
 }) {
   return (
     <div className="space-y-5">
@@ -414,6 +424,7 @@ function Step3({
         />
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <FridgePhotoButton
+            enabled={fridgePhotoEnabled}
             onDetected={(detected) => {
               const merged = Array.from(
                 new Set([...state.ingredients, ...detected])

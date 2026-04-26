@@ -4,6 +4,7 @@ import { z } from "zod";
 import { generateText } from "@/lib/ai/text";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import type { ActionResult } from "@/types/session";
@@ -34,6 +35,14 @@ export async function getSubstitutionsAction(
   const user = await requireUser();
   if (!ingredientName?.trim()) {
     return fail("VALIDATION", "Falta el ingrediente");
+  }
+
+  const plan = await getCurrentPlan(user.id);
+  if (!planHasFeature(plan, "substitutions")) {
+    return fail(
+      "FORBIDDEN",
+      "Las sustituciones IA están disponibles en planes superiores"
+    );
   }
 
   const rl = await rateLimit(`subs:${user.id}`, 10, 60);

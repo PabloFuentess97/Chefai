@@ -3,7 +3,24 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import type { ActionResult } from "@/types/session";
+
+async function ensureShoppingEnabled(
+  userId: string
+): Promise<ActionResult<never> | null> {
+  const plan = await getCurrentPlan(userId);
+  if (!planHasFeature(plan, "shoppingList")) {
+    return {
+      ok: false,
+      error: {
+        code: "FORBIDDEN",
+        message: "La lista de la compra está disponible en planes superiores",
+      },
+    };
+  }
+  return null;
+}
 
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };
@@ -68,6 +85,8 @@ export async function addRecipeToShoppingListAction(
   recipeId: string
 ): Promise<ActionResult<{ added: number }>> {
   const user = await requireUser();
+  const gate = await ensureShoppingEnabled(user.id);
+  if (gate) return gate;
   const recipe = await prisma.recipe.findUnique({
     where: { id: recipeId },
     include: { ingredients: { orderBy: { sortOrder: "asc" } } },
@@ -85,6 +104,8 @@ export async function addPlanToShoppingListAction(
   planId: string
 ): Promise<ActionResult<{ added: number; recipesAdded: number }>> {
   const user = await requireUser();
+  const gate = await ensureShoppingEnabled(user.id);
+  if (gate) return gate;
   const plan = await prisma.mealPlan.findUnique({
     where: { id: planId },
     include: {

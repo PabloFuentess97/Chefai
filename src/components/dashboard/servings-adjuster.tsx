@@ -21,10 +21,12 @@ export function ServingsAdjuster({
   baseServings,
   ingredients,
   recipeId,
+  substitutionsEnabled = true,
 }: {
   baseServings: number;
   ingredients: Ingredient[];
   recipeId: string;
+  substitutionsEnabled?: boolean;
 }) {
   const [servings, setServings] = React.useState(baseServings);
   const ratio = servings / baseServings;
@@ -83,6 +85,7 @@ export function ServingsAdjuster({
               <IngredientSubstitute
                 recipeId={recipeId}
                 ingredientName={ing.name}
+                enabled={substitutionsEnabled}
               />
             </li>
           );

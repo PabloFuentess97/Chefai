@@ -30,10 +30,23 @@ type Props = {
 export function CookingModeButton({
   recipeTitle,
   steps,
-}: Props & { className?: string }) {
+  enabled = true,
+}: Props & { className?: string; enabled?: boolean }) {
   const [open, setOpen] = React.useState(false);
 
   if (steps.length === 0) return null;
+  if (!enabled) {
+    return (
+      <Button
+        variant="outline"
+        disabled
+        title="Disponible en plan Pro o superior"
+      >
+        <ChefHat className="size-4" />
+        Cocinar paso a paso · Pro
+      </Button>
+    );
+  }
 
   return (
     <>

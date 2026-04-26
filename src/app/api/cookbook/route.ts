@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest) {
   const user = await requireUser();
   const plan = await getCurrentPlan(user.id);
 
-  if (!planHasFeature(plan, "pdfExport")) {
+  if (!planHasFeature(plan, "cookbookExport")) {
     return NextResponse.json(
       { error: "Disponible solo en plan Pro o superior." },
       { status: 403 }
