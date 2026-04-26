@@ -7,11 +7,15 @@ services:
     image: chefai-web:latest
     restart: always
     env_file: ../.env.production
+    environment:
+      REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     volumes:
       - uploads:/app/public/uploads
     networks: [internal]
@@ -48,6 +52,19 @@ services:
       retries: 10
     networks: [internal]
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    environment:
+      TZ: Europe/Madrid
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    networks: [internal]
+
   nginx:
     image: nginx:1.27-alpine
     restart: always
@@ -72,6 +89,7 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   uploads:
   certbot-www:
   certbot-conf:

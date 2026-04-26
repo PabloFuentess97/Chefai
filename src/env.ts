@@ -35,6 +35,8 @@ export const env = createEnv({
     EMAIL_FROM: z.string().default("ChefAI <hola@chefai.app>"),
 
     UPLOADS_DIR: z.string().default("./uploads"),
+
+    REDIS_URL: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),
@@ -72,6 +74,8 @@ export const env = createEnv({
     EMAIL_FROM: process.env.EMAIL_FROM,
 
     UPLOADS_DIR: process.env.UPLOADS_DIR,
+
+    REDIS_URL: process.env.REDIS_URL,
 
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:

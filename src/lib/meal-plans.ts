@@ -6,6 +6,7 @@ import path from "node:path";
 import { prisma } from "./db";
 import { openai } from "./openai";
 import { env } from "@/env";
+import { enqueueImageJob, getQueue } from "./queue";
 import {
   recipesResponseSchema,
   IMAGE_PROMPT_PREFIX,
@@ -336,13 +337,14 @@ export async function resolveSlot(args: {
 }): Promise<ResolvedSlot> {
   const { userId, input, imagesEnabled, imageQuality } = args;
 
+  // Detect if a background queue is available — if so, plan creation
+  // returns fast and images are generated/saved in workers afterwards.
+  const queueAvailable = !!getQueue();
+
   // 1. Try reuse
   const reusableId = await findReusableRecipe(input);
   if (reusableId) {
     let imageCost = 0;
-    // Top-up: if the user is on a paid plan and the reused recipe has no
-    // image (probably created by a Free user), generate one and persist it
-    // back to the recipe so future viewers also benefit.
     if (imagesEnabled) {
       const existing = await prisma.recipe.findUnique({
         where: { id: reusableId },
@@ -360,21 +362,34 @@ export async function resolveSlot(args: {
           existing.description ?? "",
           existing.cuisine ? `${existing.cuisine} cuisine` : "",
         ].filter(Boolean);
-        const { b64, costCents } = await maybeGenerateImage(
-          promptParts.join(", "),
-          true,
-          imageQuality
-        );
-        imageCost = costCents;
-        if (b64) {
-          const saved = await saveImage(userId, b64);
-          await prisma.recipe.update({
-            where: { id: existing.id },
-            data: {
-              imageUrl: saved.url,
-              imageStoragePath: saved.absolutePath,
-            },
+        const prompt = promptParts.join(", ");
+
+        if (queueAvailable) {
+          // Background path — instant return, worker fills the image
+          await enqueueImageJob({
+            recipeId: existing.id,
+            userId,
+            imagePrompt: prompt,
+            quality: imageQuality,
           });
+        } else {
+          // Inline path — wait for image (legacy behaviour)
+          const { b64, costCents } = await maybeGenerateImage(
+            prompt,
+            true,
+            imageQuality
+          );
+          imageCost = costCents;
+          if (b64) {
+            const saved = await saveImage(userId, b64);
+            await prisma.recipe.update({
+              where: { id: existing.id },
+              data: {
+                imageUrl: saved.url,
+                imageStoragePath: saved.absolutePath,
+              },
+            });
+          }
         }
       }
     }
@@ -386,22 +401,27 @@ export async function resolveSlot(args: {
     };
   }
 
-  // 2. Generate
+  // 2. Generate text first (always inline — recipe is immediately usable)
   const { recipe, tokens, costCents: textCost } =
     await generateOneRecipeForSlot(input);
 
-  const { b64, costCents: imgCost } = await maybeGenerateImage(
-    recipe.imagePrompt,
-    imagesEnabled,
-    imageQuality
-  );
-
   let imageUrl: string | null = null;
   let imageStoragePath: string | null = null;
-  if (b64) {
-    const saved = await saveImage(userId, b64);
-    imageUrl = saved.url;
-    imageStoragePath = saved.absolutePath;
+  let imgCost = 0;
+
+  // For images: enqueue if queue is available; otherwise generate inline
+  if (imagesEnabled && !queueAvailable) {
+    const { b64, costCents } = await maybeGenerateImage(
+      recipe.imagePrompt,
+      imagesEnabled,
+      imageQuality
+    );
+    imgCost = costCents;
+    if (b64) {
+      const saved = await saveImage(userId, b64);
+      imageUrl = saved.url;
+      imageStoragePath = saved.absolutePath;
+    }
   }
 
   const created = await prisma.recipe.create({
@@ -445,6 +465,17 @@ export async function resolveSlot(args: {
       },
     },
   });
+
+  // Enqueue background image generation if the queue is available and we
+  // haven't already generated one inline.
+  if (imagesEnabled && queueAvailable && !created.imageStoragePath) {
+    await enqueueImageJob({
+      recipeId: created.id,
+      userId,
+      imagePrompt: recipe.imagePrompt,
+      quality: imageQuality,
+    });
+  }
 
   return {
     recipeId: created.id,
