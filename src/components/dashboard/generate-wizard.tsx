@@ -32,6 +32,10 @@ import {
 } from "@/components/ui/select";
 import { ChipsInput } from "./chips-input";
 import { FridgePhotoButton } from "./fridge-photo-button";
+import {
+  ProgressOverlay,
+  SINGLE_RECIPE_PHASES,
+} from "./progress-overlay";
 import { generateRecipesAction } from "@/actions/recipes";
 import {
   MEAL_TYPES,
@@ -233,6 +237,14 @@ export function GenerateWizard({
           </Button>
         )}
       </div>
+
+      <ProgressOverlay
+        open={pending}
+        phases={SINGLE_RECIPE_PHASES}
+        expectedSeconds={20}
+        title="Cocinando 3 recetas para ti"
+        subtitle="La IA está pensando en sabores. Tarda unos 15-20 segundos."
+      />
     </div>
   );
 }

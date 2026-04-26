@@ -31,6 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChipsInput } from "./chips-input";
+import {
+  ProgressOverlay,
+  DAILY_PLAN_PHASES,
+  WEEKLY_PLAN_PHASES,
+} from "./progress-overlay";
 import { GOALS, type DietGoal } from "@/lib/diet-goals";
 import { cn } from "@/lib/utils";
 import { createMealPlanAction } from "@/actions/planner";
@@ -222,13 +227,17 @@ export function PlannerWizard({
         )}
       </div>
 
-      {pending && (
-        <div className="text-xs text-muted-foreground text-center pt-1">
-          Reutilizamos recetas existentes cuando podemos para ahorrar tiempo y
-          coste. Esto puede tardar entre 30 segundos y 2 minutos según el
-          tamaño del menú.
-        </div>
-      )}
+      <ProgressOverlay
+        open={pending}
+        phases={s.type === "WEEKLY" ? WEEKLY_PLAN_PHASES : DAILY_PLAN_PHASES}
+        expectedSeconds={s.type === "WEEKLY" ? 45 : 18}
+        title={
+          s.type === "WEEKLY"
+            ? "Preparando tu menú semanal"
+            : "Preparando tu menú diario"
+        }
+        subtitle={`${totalSlots} platos · reutilizamos recetas de la comunidad cuando encajan`}
+      />
     </div>
   );
 }
