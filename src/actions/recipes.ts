@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { generateRecipesInput } from "@/lib/validators";
 import { generateRecipes, generateRecipeImage } from "@/lib/openai";
+import { enqueueImageJob, getQueue } from "@/lib/queue";
 import {
   getCurrentPlan,
   canGenerate,
@@ -112,6 +113,10 @@ export async function generateRecipesAction(
       : "low"
   ) as "low" | "standard" | "hd";
 
+  // If Redis is up, image generation goes to background workers and the
+  // action returns ~10s. Otherwise we fall back to inline (slower).
+  const queueAvailable = !!getQueue();
+
   const recipeIds: string[] = [];
   let imagesGenerated = 0;
   let imageCostCents = 0;
@@ -121,7 +126,8 @@ export async function generateRecipesAction(
     let imageUrl: string | null = null;
     let imageStoragePath: string | null = null;
 
-    if (wantsImages) {
+    if (wantsImages && !queueAvailable) {
+      // Inline path (no Redis): generate the image now
       try {
         const img = await generateRecipeImage(r.imagePrompt, imageQuality);
         const saved = await saveImageFromBase64(user.id, img.b64);
@@ -186,6 +192,16 @@ export async function generateRecipesAction(
         costCents: usageInfo.costCents + imageCostCents,
       },
     });
+
+    // Background path: enqueue the image so the action can return now
+    if (wantsImages && queueAvailable && !recipe.imageStoragePath) {
+      await enqueueImageJob({
+        recipeId: recipe.id,
+        userId: user.id,
+        imagePrompt: r.imagePrompt,
+        quality: imageQuality,
+      });
+    }
 
     recipeIds.push(recipe.id);
   }

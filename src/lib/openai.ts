@@ -21,7 +21,13 @@ export function getOpenAI(): OpenAI {
   if (!env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY not configured");
   }
-  _client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  _client = new OpenAI({
+    apiKey: env.OPENAI_API_KEY,
+    // Tight timeouts so a slow upstream doesn't pin the whole request for
+    // 2+ minutes (the SDK's default behaviour with internal retries).
+    timeout: 45_000,
+    maxRetries: 1,
+  });
   return _client;
 }
 

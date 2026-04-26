@@ -241,9 +241,9 @@ export function GenerateWizard({
       <ProgressOverlay
         open={pending}
         phases={SINGLE_RECIPE_PHASES}
-        expectedSeconds={20}
+        expectedSeconds={12}
         title="Cocinando 3 recetas para ti"
-        subtitle="La IA está pensando en sabores. Tarda unos 15-20 segundos."
+        subtitle="La IA escribe las recetas ahora; las fotos se preparan en segundo plano y aparecerán al instante."
       />
     </div>
   );

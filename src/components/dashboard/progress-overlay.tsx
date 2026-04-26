@@ -197,9 +197,9 @@ export function ProgressOverlay({
 
 export const SINGLE_RECIPE_PHASES: Phase[] = [
   { label: "Analizando ingredientes y preferencias", weight: 1 },
-  { label: "Cocinando 3 recetas con IA", weight: 6 },
-  { label: "Generando imágenes de los platos", weight: 3 },
+  { label: "Cocinando 3 recetas con IA", weight: 5 },
   { label: "Calculando macros y nutrición", weight: 1 },
+  { label: "Encolando imágenes en segundo plano", weight: 1 },
   { label: "Maquetando tus recetas", weight: 1 },
 ];
 
