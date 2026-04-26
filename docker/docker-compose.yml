@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   web:
     build:
@@ -21,6 +27,7 @@ services:
     networks: [internal]
     expose:
       - "3000"
+    logging: *default-logging
 
   migrate:
     build:
@@ -34,6 +41,7 @@ services:
       postgres:
         condition: service_healthy
     networks: [internal]
+    logging: *default-logging
 
   postgres:
     image: postgres:16-alpine
@@ -51,6 +59,7 @@ services:
       interval: 5s
       retries: 10
     networks: [internal]
+    logging: *default-logging
 
   redis:
     image: redis:7-alpine
@@ -64,6 +73,7 @@ services:
       interval: 5s
       retries: 10
     networks: [internal]
+    logging: *default-logging
 
   nginx:
     image: nginx:1.27-alpine
@@ -78,6 +88,7 @@ services:
       - uploads:/app/public/uploads:ro
     depends_on: [web]
     networks: [internal]
+    logging: *default-logging
 
   certbot:
     image: certbot/certbot:latest
@@ -86,6 +97,7 @@ services:
       - certbot-www:/var/www/certbot
       - certbot-conf:/etc/letsencrypt
     entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;'
+    logging: *default-logging
 
 volumes:
   pgdata:
