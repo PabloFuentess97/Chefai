@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
 import { LogoutButton } from "@/components/settings/logout-button";
-import type { DietGoal } from "@/lib/diet-goals";
+import type { DietGoal, DietaryProfile } from "@/lib/diet-goals";
 
 export const metadata = { title: "Tu cuenta" };
 
@@ -15,7 +15,13 @@ export default async function SettingsPage() {
   const session = await requireUser();
   const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { name: true, email: true, role: true, preferredGoal: true },
+    select: {
+      name: true,
+      email: true,
+      role: true,
+      preferredGoal: true,
+      dietaryProfile: true,
+    },
   });
   if (!user) return null;
 
@@ -41,6 +47,9 @@ export default async function SettingsPage() {
             defaultName={user.name}
             email={user.email}
             defaultGoal={(user.preferredGoal as DietGoal | null) ?? null}
+            defaultDietary={
+              (user.dietaryProfile as DietaryProfile | null) ?? null
+            }
           />
         </CardContent>
       </Card>

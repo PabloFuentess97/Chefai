@@ -8,16 +8,29 @@ import {
   TrendingUp,
   Sparkles,
   Dumbbell,
+  Leaf,
+  Carrot,
+  Fish,
+  Flame,
+  WheatOff,
+  MilkOff,
+  Drumstick,
+  Salad,
+  Utensils,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GOALS, type DietGoal } from "@/lib/diet-goals";
+import {
+  DIETARY_PROFILES,
+  type DietaryProfile,
+} from "@/lib/diet-goals";
 import { cn } from "@/lib/utils";
 import { updateProfileAction } from "@/actions/settings";
 
-const ICONS: Record<DietGoal, LucideIcon> = {
+const GOAL_ICONS: Record<DietGoal, LucideIcon> = {
   deficit: TrendingDown,
   maintain: Equal,
   volume: TrendingUp,
@@ -25,21 +38,39 @@ const ICONS: Record<DietGoal, LucideIcon> = {
   muscle: Dumbbell,
 };
 
+const DIET_ICONS: Record<DietaryProfile, LucideIcon> = {
+  omnivore: Utensils,
+  vegetarian: Carrot,
+  vegan: Leaf,
+  pescatarian: Fish,
+  keto: Flame,
+  lowcarb: Flame,
+  glutenfree: WheatOff,
+  lactosefree: MilkOff,
+  paleo: Drumstick,
+  mediterranean: Salad,
+};
+
 export function ProfileForm({
   defaultName,
   email,
   defaultGoal,
+  defaultDietary,
 }: {
   defaultName: string | null;
   email: string;
   defaultGoal: DietGoal | null;
+  defaultDietary: DietaryProfile | null;
 }) {
   const [pending, start] = React.useTransition();
   const [goal, setGoal] = React.useState<DietGoal | null>(defaultGoal);
+  const [dietary, setDietary] = React.useState<DietaryProfile | null>(
+    defaultDietary
+  );
 
   function onSubmit(fd: FormData) {
-    if (goal) fd.set("preferredGoal", goal);
-    else fd.set("preferredGoal", "");
+    fd.set("preferredGoal", goal ?? "");
+    fd.set("dietaryProfile", dietary ?? "");
     start(async () => {
       const res = await updateProfileAction(null, fd);
       if (!res.ok) {
@@ -80,21 +111,51 @@ export function ProfileForm({
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <GoalChip
+          <Chip
             active={goal === null}
             onClick={() => setGoal(null)}
             label="Sin preferencia"
           />
           {GOALS.map((g) => {
-            const Icon = ICONS[g.id];
+            const Icon = GOAL_ICONS[g.id];
             return (
-              <GoalChip
+              <Chip
                 key={g.id}
                 active={goal === g.id}
                 onClick={() => setGoal(g.id)}
                 icon={<Icon className="size-4" />}
                 label={g.short}
                 desc={g.desc}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <Label>Mi perfil dietético</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Se aplicará como restricción a TODAS las recetas y menús que la
+            IA genere. Si no eliges nada, no habrá restricciones.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <Chip
+            active={dietary === null}
+            onClick={() => setDietary(null)}
+            label="Sin restricciones"
+          />
+          {DIETARY_PROFILES.filter((d) => d.id !== "omnivore").map((d) => {
+            const Icon = DIET_ICONS[d.id];
+            return (
+              <Chip
+                key={d.id}
+                active={dietary === d.id}
+                onClick={() => setDietary(d.id)}
+                icon={<Icon className="size-4" />}
+                label={d.short}
+                desc={d.desc}
               />
             );
           })}
@@ -108,7 +169,7 @@ export function ProfileForm({
   );
 }
 
-function GoalChip({
+function Chip({
   active,
   onClick,
   icon,

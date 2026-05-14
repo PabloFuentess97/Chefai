@@ -28,6 +28,7 @@ model User {
   resetToken      String?         @unique
   resetTokenExp   DateTime?
   preferredGoal   String?         // diet goal default: deficit | maintain | volume | definition | muscle
+  dietaryProfile  String?         // dietary profile: omnivore | vegetarian | vegan | pescatarian | keto | lowcarb | glutenfree | lactosefree | paleo | mediterranean
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 

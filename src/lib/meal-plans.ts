@@ -14,9 +14,11 @@ import {
 } from "./prompts";
 import {
   type DietGoal,
+  type DietaryProfile,
   type MealType,
   getMeal,
   getGoal,
+  getDietaryProfile,
   targetCaloriesForMeal,
   proteinMinForGoal,
 } from "./diet-goals";
@@ -40,6 +42,7 @@ export type SlotInput = {
   cuisine: string | null;
   preferences: string[]; // optional ingredient hints
   forbidden: string[];
+  dietaryProfile: DietaryProfile | null;
   servings: number;
   excludeRecipeIds: string[];
   avoidTitles?: string[]; // recently used recipe titles to encourage variety
@@ -57,6 +60,13 @@ export type ResolvedSlot = {
 // ------------------------------------------------------------------
 
 async function findReusableRecipe(input: SlotInput): Promise<string | null> {
+  // Safety: when the user has a dietary profile (vegan/vegetarian/keto/etc.)
+  // we cannot blindly reuse community recipes because they aren't tagged with
+  // dietary metadata. Force a fresh AI generation that respects the profile.
+  if (input.dietaryProfile && input.dietaryProfile !== "omnivore") {
+    return null;
+  }
+
   const mealType = SLOT_TO_MEAL_TYPE[input.slot];
   const cuisine = input.cuisine?.trim();
 
@@ -113,6 +123,7 @@ async function findReusableRecipe(input: SlotInput): Promise<string | null> {
 const SLOT_SYSTEM_PROMPT = `Eres un chef profesional con formación en nutrición. Generas recetas en español, realistas, sabrosas y cocinables en una cocina doméstica estándar. Respondes EXCLUSIVAMENTE con un JSON válido sin texto extra ni markdown.
 
 Reglas estrictas (en orden de prioridad):
+0. Si el prompt indica un PERFIL DIETÉTICO (vegetariano, vegano, keto, sin gluten, etc.), TODAS las recetas DEBEN cumplir sus reglas y NO contener los ingredientes vetados. Esta restricción es de máxima prioridad junto con "forbidden".
 1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias). Es seguridad alimentaria.
 2. La receta DEBE ser exactamente UNA, apropiada para el TIPO DE COMIDA indicado (en sabor, presentación y textura).
 3. Si se indica OBJETIVO NUTRICIONAL con rango calórico y proteína mínima, respétalos. Ajusta cantidades para encajar.
@@ -132,6 +143,7 @@ Reglas estrictas (en orden de prioridad):
 function buildSlotUserPrompt(input: SlotInput): string {
   const meal = getMeal(SLOT_TO_MEAL_TYPE[input.slot]);
   const goal = getGoal(input.goal);
+  const dietary = getDietaryProfile(input.dietaryProfile);
   const calRange = targetCaloriesForMeal(SLOT_TO_MEAL_TYPE[input.slot], input.goal);
   const proteinMin = proteinMinForGoal(input.goal);
 
@@ -146,6 +158,13 @@ function buildSlotUserPrompt(input: SlotInput): string {
     ? `COCINA: ${input.cuisine} — la receta DEBE ser auténtica de esta tradición culinaria, con ingredientes y técnicas propios.`
     : "COCINA: cualquiera";
 
+  const dietaryBlock =
+    dietary && dietary.id !== "omnivore"
+      ? `PERFIL DIETÉTICO (PRIORIDAD MÁXIMA): ${dietary.label}. La receta DEBE cumplir estas reglas:
+${dietary.rules.map((r, i) => `  ${i + 1}. ${r}`).join("\n")}
+INGREDIENTES VETADOS POR EL PERFIL: ${JSON.stringify(dietary.banned)}`
+      : "";
+
   const avoidLine =
     input.avoidTitles && input.avoidTitles.length > 0
       ? `AVOID_TITLES (recetas recientes que NO debes repetir ni imitar): ${JSON.stringify(input.avoidTitles.slice(0, 20))}`
@@ -157,6 +176,7 @@ TIPO DE COMIDA: ${meal?.label ?? "comida"}.
 ${goalLine}
 ${speedLine}
 ${cuisineLine}
+${dietaryBlock}
 ${avoidLine}
 DIFICULTAD: ${input.difficulty ?? "any"}
 COMENSALES: ${input.servings}

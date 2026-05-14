@@ -36,7 +36,12 @@ import {
   DAILY_PLAN_PHASES,
   WEEKLY_PLAN_PHASES,
 } from "./progress-overlay";
-import { GOALS, type DietGoal } from "@/lib/diet-goals";
+import {
+  GOALS,
+  DIETARY_PROFILES,
+  type DietGoal,
+  type DietaryProfile,
+} from "@/lib/diet-goals";
 import { cn } from "@/lib/utils";
 import { createMealPlanAction } from "@/actions/planner";
 
@@ -52,6 +57,7 @@ type State = {
   type: "DAILY" | "WEEKLY";
   startDate: string; // ISO YYYY-MM-DD
   goal: DietGoal | null;
+  dietary: DietaryProfile | null;
   difficulty: "easy" | "medium" | "hard" | "";
   fast: boolean;
   servings: number;
@@ -92,9 +98,11 @@ function nextMondayISO(): string {
 
 export function PlannerWizard({
   defaultGoal = null,
+  defaultDietary = null,
   allowWeekly = true,
 }: {
   defaultGoal?: DietGoal | null;
+  defaultDietary?: DietaryProfile | null;
   allowWeekly?: boolean;
 }) {
   const router = useRouter();
@@ -105,6 +113,7 @@ export function PlannerWizard({
     type: allowWeekly ? "WEEKLY" : "DAILY",
     startDate: allowWeekly ? nextMondayISO() : todayISO(),
     goal: defaultGoal,
+    dietary: defaultDietary,
     difficulty: "",
     fast: false,
     servings: 2,
@@ -141,6 +150,7 @@ export function PlannerWizard({
     if (s.cuisine) fd.set("cuisine", s.cuisine);
     fd.set("preferences", s.preferences.join(","));
     fd.set("forbidden", s.forbidden.join(","));
+    if (s.dietary) fd.set("dietaryProfile", s.dietary);
 
     startTransition(async () => {
       const res = await createMealPlanAction(null, fd);
@@ -416,6 +426,31 @@ function Step3({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="dietary">Perfil dietético</Label>
+        <Select
+          value={state.dietary ?? ""}
+          onValueChange={(v) =>
+            update("dietary", (v || null) as DietaryProfile | null)
+          }
+        >
+          <SelectTrigger id="dietary">
+            <SelectValue placeholder="Sin restricciones" />
+          </SelectTrigger>
+          <SelectContent>
+            {DIETARY_PROFILES.map((d) => (
+              <SelectItem key={d.id} value={d.id}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">
+          Por defecto usamos el de tu perfil. Se aplicará a todos los platos
+          del menú.
+        </p>
       </div>
 
       <div className="space-y-2">

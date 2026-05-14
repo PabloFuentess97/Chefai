@@ -31,6 +31,21 @@ const createPlanSchema = z.object({
   cuisine: z.string().trim().max(40).optional().nullable(),
   preferences: z.array(z.string().trim().min(1).max(60)).max(30).default([]),
   forbidden: z.array(z.string().trim().min(1).max(60)).max(30).default([]),
+  dietaryProfile: z
+    .enum([
+      "omnivore",
+      "vegetarian",
+      "vegan",
+      "pescatarian",
+      "keto",
+      "lowcarb",
+      "glutenfree",
+      "lactosefree",
+      "paleo",
+      "mediterranean",
+    ])
+    .nullable()
+    .optional(),
 });
 
 function fail(code: string, message: string): ActionResult<never> {
@@ -74,6 +89,18 @@ export async function createMealPlanAction(
 ): Promise<CreatePlanResult> {
   const user = await requireUser();
 
+  // Fallback to the user's saved dietary profile when wizard doesn't override
+  let dietaryFromForm = (formData.get("dietaryProfile") || "")
+    .toString()
+    .trim();
+  if (!dietaryFromForm) {
+    const u = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { dietaryProfile: true },
+    });
+    if (u?.dietaryProfile) dietaryFromForm = u.dietaryProfile;
+  }
+
   const parsed = createPlanSchema.safeParse({
     type: formData.get("type"),
     startDate: formData.get("startDate"),
@@ -84,6 +111,7 @@ export async function createMealPlanAction(
     cuisine: formData.get("cuisine") || null,
     preferences: parseList(formData.get("preferences")),
     forbidden: parseList(formData.get("forbidden")),
+    dietaryProfile: dietaryFromForm || null,
   });
   if (!parsed.success) return fromZod(parsed.error);
 
@@ -173,6 +201,7 @@ export async function createMealPlanAction(
     cuisine: data.cuisine ?? null,
     preferences: data.preferences,
     forbidden: data.forbidden,
+    dietaryProfile: data.dietaryProfile ?? null,
     servings: data.servings,
     excludeRecipeIds: [...usedIds, ...recentRecipeIds],
     avoidTitles: recentTitles,

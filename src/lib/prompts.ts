@@ -3,6 +3,7 @@ import type { GenerateRecipesInput } from "./validators";
 import {
   getMeal,
   getGoal,
+  getDietaryProfile,
   targetCaloriesForMeal,
   proteinMinForGoal,
 } from "./diet-goals";
@@ -79,6 +80,7 @@ export type RecipesResponse = z.infer<typeof recipesResponseSchema>;
 export const SYSTEM_PROMPT = `Eres un chef profesional con formación en nutrición. Generas recetas en español, realistas, sabrosas y cocinables en una cocina doméstica estándar (horno, fogones, microondas, batidora). Respondes EXCLUSIVAMENTE con un JSON válido que cumpla el esquema indicado por el usuario, sin texto extra, sin markdown, sin explicaciones.
 
 Reglas estrictas (en orden de prioridad):
+0. Si el prompt indica un PERFIL DIETÉTICO (vegetariano, vegano, keto, sin gluten, etc.), TODAS las recetas DEBEN cumplir sus reglas y NO contener los ingredientes vetados por ese perfil. Esta restricción es de máxima prioridad junto con "forbidden".
 1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias/intolerancias). Esto es una cuestión de seguridad alimentaria.
 2. EVITA los ingredientes listados en "unwanted" salvo que sean absolutamente imprescindibles; en ese caso, usa una alternativa equivalente.
 3. Usa principalmente los ingredientes en "available". Puedes sugerir hasta 3 ingredientes adicionales por receta marcándolos como "suggested": true (sal, aceite, especias comunes no cuentan).
@@ -95,6 +97,7 @@ Reglas estrictas (en orden de prioridad):
 export function buildUserPrompt(input: GenerateRecipesInput): string {
   const meal = getMeal(input.mealType);
   const goal = getGoal(input.goal);
+  const dietary = getDietaryProfile(input.dietaryProfile);
   const calRange = targetCaloriesForMeal(input.mealType, input.goal);
   const proteinMin = proteinMinForGoal(input.goal);
 
@@ -106,10 +109,19 @@ export function buildUserPrompt(input: GenerateRecipesInput): string {
     ? `OBJETIVO NUTRICIONAL: ${goal.label} — ${goal.desc}. Calcula las cantidades para que cada ración tenga ENTRE ${calRange?.min ?? "—"} Y ${calRange?.max ?? "—"} kcal y AL MENOS ${proteinMin}g de proteína. Es prioritario respetar este rango.`
     : `OBJETIVO NUTRICIONAL: equilibrado, sin restricción específica`;
 
+  const dietaryBlock =
+    dietary && dietary.id !== "omnivore"
+      ? `\nPERFIL DIETÉTICO: ${dietary.label} — ${dietary.desc}.
+REGLAS DE ESTE PERFIL (PRIORIDAD MÁXIMA, junto con "forbidden"):
+${dietary.rules.map((r, i) => `  ${i + 1}. ${r}`).join("\n")}
+INGREDIENTES VETADOS POR ESTE PERFIL (añádelos mentalmente a "forbidden"): ${JSON.stringify(dietary.banned)}
+Si alguno de los "INGREDIENTES DISPONIBLES" rompe el perfil, IGNÓRALO en lugar de usarlo.`
+      : "";
+
   return `Genera recetas con estos parámetros:
 
 ${mealLine}
-${goalLine}
+${goalLine}${dietaryBlock}
 
 INGREDIENTES DISPONIBLES: ${JSON.stringify(input.ingredients)}
 INGREDIENTES PROHIBIDOS (alergias/intolerancias): ${JSON.stringify(input.forbidden ?? [])}

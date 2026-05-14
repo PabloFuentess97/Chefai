@@ -31,9 +31,11 @@ export async function updateProfileAction(
 ): Promise<ActionResult<{ updated: true }>> {
   const user = await requireUser();
   const goalRaw = formData.get("preferredGoal");
+  const dietaryRaw = formData.get("dietaryProfile");
   const parsed = updateProfileSchema.safeParse({
     name: formData.get("name"),
     preferredGoal: goalRaw && goalRaw !== "" ? goalRaw : null,
+    dietaryProfile: dietaryRaw && dietaryRaw !== "" ? dietaryRaw : null,
   });
   if (!parsed.success) return fromZod(parsed.error);
 
@@ -42,11 +44,13 @@ export async function updateProfileAction(
     data: {
       name: parsed.data.name,
       preferredGoal: parsed.data.preferredGoal ?? null,
+      dietaryProfile: parsed.data.dietaryProfile ?? null,
     },
   });
   revalidatePath("/settings");
   revalidatePath("/dashboard");
   revalidatePath("/generate");
+  revalidatePath("/planner");
   return { ok: true, data: { updated: true } };
 }
 

@@ -40,7 +40,9 @@ import { generateRecipesAction } from "@/actions/recipes";
 import {
   MEAL_TYPES,
   GOALS,
+  DIETARY_PROFILES,
   type DietGoal,
+  type DietaryProfile,
   type MealType,
   targetCaloriesForMeal,
 } from "@/lib/diet-goals";
@@ -64,6 +66,7 @@ const GOAL_ICONS: Record<DietGoal, LucideIcon> = {
 type State = {
   mealType: MealType | null;
   goal: DietGoal | null;
+  dietary: DietaryProfile | null;
   servings: number;
   ingredients: string[];
   forbidden: string[];
@@ -89,9 +92,11 @@ const STEPS = [
 
 export function GenerateWizard({
   defaultGoal = null,
+  defaultDietary = null,
   fridgePhotoEnabled = true,
 }: {
   defaultGoal?: DietGoal | null;
+  defaultDietary?: DietaryProfile | null;
   fridgePhotoEnabled?: boolean;
 }) {
   const router = useRouter();
@@ -101,6 +106,7 @@ export function GenerateWizard({
   const [s, setS] = React.useState<State>({
     mealType: null,
     goal: defaultGoal,
+    dietary: defaultDietary,
     servings: 2,
     ingredients: [],
     forbidden: [],
@@ -145,6 +151,7 @@ export function GenerateWizard({
     if (s.difficulty) fd.set("difficulty", s.difficulty);
     if (s.mealType) fd.set("mealType", s.mealType);
     if (s.goal) fd.set("goal", s.goal);
+    if (s.dietary) fd.set("dietaryProfile", s.dietary);
 
     startTransition(async () => {
       const res = await generateRecipesAction(null, fd);
@@ -476,6 +483,7 @@ function Step4({
 }) {
   const meal = MEAL_TYPES.find((m) => m.id === state.mealType);
   const goal = GOALS.find((g) => g.id === state.goal);
+  const dietary = DIETARY_PROFILES.find((d) => d.id === state.dietary);
 
   return (
     <div className="space-y-5">
@@ -518,6 +526,31 @@ function Step4({
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="dietary">Perfil dietético</Label>
+        <Select
+          value={state.dietary ?? ""}
+          onValueChange={(v) =>
+            update("dietary", (v || null) as DietaryProfile | null)
+          }
+        >
+          <SelectTrigger id="dietary">
+            <SelectValue placeholder="Sin restricciones" />
+          </SelectTrigger>
+          <SelectContent>
+            {DIETARY_PROFILES.map((d) => (
+              <SelectItem key={d.id} value={d.id}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">
+          Por defecto se usa el de tu perfil. Cámbialo solo para esta
+          receta si quieres.
+        </p>
+      </div>
+
       {/* Summary */}
       <div className="rounded-2xl border bg-card p-5 space-y-3">
         <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
@@ -525,6 +558,7 @@ function Step4({
         </p>
         <Row label="Tipo" value={meal?.label ?? "Cualquiera"} />
         <Row label="Objetivo" value={goal?.label ?? "Sin preferencia"} />
+        <Row label="Dieta" value={dietary?.label ?? "Sin restricciones"} />
         <Row label="Comensales" value={String(state.servings)} />
         <Row
           label="Ingredientes"

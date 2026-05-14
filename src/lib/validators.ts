@@ -46,6 +46,19 @@ export const changePasswordSchema = z
 
 // ---------- Recipes ----------
 
+export const dietaryProfileEnum = z.enum([
+  "omnivore",
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "keto",
+  "lowcarb",
+  "glutenfree",
+  "lactosefree",
+  "paleo",
+  "mediterranean",
+]);
+
 export const generateRecipesInput = z.object({
   ingredients: z
     .array(z.string().trim().min(1).max(60))
@@ -62,6 +75,7 @@ export const generateRecipesInput = z.object({
   goal: z
     .enum(["deficit", "maintain", "volume", "definition", "muscle"])
     .optional(),
+  dietaryProfile: dietaryProfileEnum.optional(),
 });
 
 export type GenerateRecipesInput = z.infer<typeof generateRecipesInput>;
@@ -74,6 +88,7 @@ export const updateProfileSchema = z.object({
     .enum(["deficit", "maintain", "volume", "definition", "muscle"])
     .optional()
     .nullable(),
+  dietaryProfile: dietaryProfileEnum.optional().nullable(),
 });
 
 // ---------- Admin ----------
