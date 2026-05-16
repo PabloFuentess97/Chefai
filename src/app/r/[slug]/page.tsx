@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { Sparkles, Check } from "lucide-react";
 
 import { getActiveCampaignBySlug } from "@/lib/campaigns";
+import { getCampaignTemplate } from "@/lib/campaign-templates";
 import { getBranding } from "@/lib/branding";
 import { CampaignSignupForm } from "@/components/landing/campaign-signup-form";
+import { CampaignDecoration } from "@/components/landing/campaign-decoration";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -36,6 +38,13 @@ export default async function CampaignLandingPage({ params }: Props) {
   }
 
   const branding = await getBranding();
+  const template = getCampaignTemplate(campaign.templateKey);
+  const accent =
+    campaign.accentColor ?? template?.accentColor ?? branding.color;
+  const gradientFrom = template?.gradientFrom ?? accent;
+  const gradientTo = template?.gradientTo ?? accent;
+  const decoration = template?.decoration ?? "none";
+
   const bullets =
     campaign.bulletList
       ?.split("|")
@@ -57,16 +66,33 @@ export default async function CampaignLandingPage({ params }: Props) {
         </div>
       </header>
 
+      {/* Decorative banner band — only when a template is selected */}
+      {template && (
+        <div
+          className="relative h-16 md:h-20 overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+          }}
+        >
+          <CampaignDecoration kind={decoration} color="#ffffff" />
+        </div>
+      )}
+
       {/* Hero */}
-      <section className="mx-auto max-w-5xl px-4 pt-12 pb-8 md:pt-20 md:pb-16">
+      <section className="mx-auto max-w-5xl px-4 pt-10 pb-8 md:pt-16 md:pb-16 relative">
+        {template && (
+          <div className="absolute inset-0 pointer-events-none -z-10 opacity-30">
+            <CampaignDecoration kind={decoration} color={accent} />
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="space-y-5">
             {campaign.heroBadge && (
               <span
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
                 style={{
-                  background: `${branding.color}1f`,
-                  color: branding.color,
+                  background: `${accent}1f`,
+                  color: accent,
                 }}
               >
                 <Sparkles className="size-3.5" />
@@ -88,7 +114,7 @@ export default async function CampaignLandingPage({ params }: Props) {
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <Check
                       className="size-4 mt-0.5 shrink-0"
-                      style={{ color: branding.color }}
+                      style={{ color: accent }}
                     />
                     <span>{b}</span>
                   </li>
@@ -97,8 +123,9 @@ export default async function CampaignLandingPage({ params }: Props) {
             )}
 
             <div className="pt-3 text-xs text-muted-foreground">
-              Hoy {campaign.trialDays} días gratis · {campaign.trialRecipesPerDay} recetas/día ·
-              al finalizar pasarás a <strong>{campaign.targetPlan.name}</strong>{" "}
+              Hoy {campaign.trialDays} días gratis ·{" "}
+              {campaign.trialRecipesPerDay} recetas/día · al finalizar pasarás
+              a <strong>{campaign.targetPlan.name}</strong>{" "}
               ({(campaign.targetPlan.priceCents / 100).toFixed(2)} €/
               {campaign.targetPlan.interval === "MONTH" ? "mes" : "año"}).
               Puedes cancelar antes y no se cobra nada.
@@ -121,14 +148,14 @@ export default async function CampaignLandingPage({ params }: Props) {
               <div
                 className="rounded-2xl border p-6 bg-card shadow-sm"
                 style={{
-                  borderColor: `${branding.color}40`,
-                  boxShadow: `0 10px 30px -10px ${branding.color}26`,
+                  borderColor: `${accent}40`,
+                  boxShadow: `0 10px 30px -10px ${accent}26`,
                 }}
               >
                 <CampaignSignupForm
                   campaignSlug={campaign.slug}
                   ctaLabel={campaign.ctaLabel ?? "Empezar gratis"}
-                  brandColor={branding.color}
+                  brandColor={accent}
                 />
               </div>
             )}
@@ -145,14 +172,14 @@ export default async function CampaignLandingPage({ params }: Props) {
           <div
             className="rounded-2xl border p-6 bg-card shadow-sm"
             style={{
-              borderColor: `${branding.color}40`,
-              boxShadow: `0 10px 30px -10px ${branding.color}26`,
+              borderColor: `${accent}40`,
+              boxShadow: `0 10px 30px -10px ${accent}26`,
             }}
           >
             <CampaignSignupForm
               campaignSlug={campaign.slug}
               ctaLabel={campaign.ctaLabel ?? "Empezar gratis"}
-              brandColor={branding.color}
+              brandColor={accent}
             />
           </div>
         </section>

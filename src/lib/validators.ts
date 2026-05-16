@@ -165,6 +165,15 @@ export const upsertCampaignSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones"),
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(500).optional().nullable(),
+  templateKey: z.string().trim().max(40).optional().nullable(),
+  accentColor: z
+    .union([
+      z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color HEX inválido"),
+      z.literal(""),
+    ])
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null)),
   heroBadge: z.string().trim().max(40).optional().nullable(),
   heroTitle: z.string().trim().max(120).optional().nullable(),
   heroSubtitle: z.string().trim().max(300).optional().nullable(),

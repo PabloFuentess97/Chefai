@@ -140,6 +140,9 @@ model Campaign {
   slug                String    @unique
   name                String
   description         String?
+  // Visual template (preset: "trial-7days", "mothers-day", "black-friday", "christmas", ...)
+  templateKey         String?
+  accentColor         String?   // HEX override for the landing accent (defaults to brand)
   // Landing copy
   heroBadge           String?   // e.g. "7 dias gratis"
   heroTitle           String?
