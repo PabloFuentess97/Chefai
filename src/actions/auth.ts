@@ -24,6 +24,7 @@ import {
   sendEmail,
   verifyEmailTemplate,
   resetPasswordEmailTemplate,
+  sendTransactional,
 } from "@/lib/email";
 import { getBranding } from "@/lib/branding";
 import { env } from "@/env";
@@ -81,18 +82,29 @@ export async function registerAction(
     },
   });
 
-  // Send verification email (non-blocking failure)
+  // Send verification + welcome emails (non-blocking)
   try {
-    const branding = await getBranding();
     const link = `${env.APP_URL}/verify-email?token=${verifyToken}`;
-    const tpl = verifyEmailTemplate({
-      brandName: branding.name,
-      link,
-      toName: user.name,
+    await sendTransactional({
+      to: user.email,
+      toUserId: user.id,
+      templateKey: "verify-email",
+      ctaUrlOverride: link,
+      vars: { name: user.name ?? "chef", link },
     });
-    await sendEmail({ to: user.email, ...tpl });
   } catch (e) {
     logger.error({ err: e }, "verify email send failed");
+  }
+  // Welcome email (independent of verification)
+  try {
+    await sendTransactional({
+      to: user.email,
+      toUserId: user.id,
+      templateKey: "welcome",
+      vars: { name: user.name ?? "chef" },
+    });
+  } catch (e) {
+    logger.error({ err: e }, "welcome email send failed");
   }
 
   const meta = await getRequestMeta();
@@ -337,18 +349,28 @@ export async function registerWithCampaignAction(
     data: { signupCount: { increment: 1 } },
   });
 
-  // Best-effort welcome email
+  // Best-effort verify + welcome emails for campaign signups
   try {
-    const branding = await getBranding();
     const link = `${env.APP_URL}/verify-email?token=${verifyToken}`;
-    const tpl = verifyEmailTemplate({
-      brandName: branding.name,
-      link,
-      toName: user.name,
+    await sendTransactional({
+      to: user.email,
+      toUserId: user.id,
+      templateKey: "verify-email",
+      ctaUrlOverride: link,
+      vars: { name: user.name ?? "chef", link },
     });
-    await sendEmail({ to: user.email, ...tpl });
   } catch (e) {
     logger.error({ err: e }, "verify email send failed");
+  }
+  try {
+    await sendTransactional({
+      to: user.email,
+      toUserId: user.id,
+      templateKey: "welcome",
+      vars: { name: user.name ?? "chef" },
+    });
+  } catch (e) {
+    logger.error({ err: e }, "welcome email send failed");
   }
 
   const meta = await getRequestMeta();

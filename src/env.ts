@@ -42,6 +42,7 @@ export const env = createEnv({
 
     EMAIL_PROVIDER: z.enum(["console", "resend", "smtp"]).default("console"),
     RESEND_API_KEY: z.string().optional(),
+    RESEND_WEBHOOK_SECRET: z.string().optional(),
     EMAIL_FROM: z.string().default("ChefAI <hola@chefai.app>"),
 
     UPLOADS_DIR: z.string().default("./uploads"),
@@ -88,6 +89,7 @@ export const env = createEnv({
 
     EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     EMAIL_FROM: process.env.EMAIL_FROM,
 
     UPLOADS_DIR: process.env.UPLOADS_DIR,

@@ -24,5 +24,36 @@ export async function register() {
     setTimeout(() => {
       processExpiredTrials().catch(() => {});
     }, 30_000).unref?.();
+
+    // Email workers — scheduled email campaigns, trial reminders, weekly digest
+    const {
+      processScheduledEmailCampaigns,
+      processTrialReminders,
+      processWeeklyDigest,
+    } = await import("./lib/email-worker");
+
+    setInterval(() => {
+      processScheduledEmailCampaigns().catch((e) =>
+        import("./lib/logger").then(({ logger }) =>
+          logger.error({ err: e }, "scheduled-email worker crashed")
+        )
+      );
+    }, TICK).unref?.();
+
+    setInterval(() => {
+      processTrialReminders().catch((e) =>
+        import("./lib/logger").then(({ logger }) =>
+          logger.error({ err: e }, "trial-reminder worker crashed")
+        )
+      );
+    }, 30 * 60 * 1000).unref?.(); // 30 min
+
+    setInterval(() => {
+      processWeeklyDigest().catch((e) =>
+        import("./lib/logger").then(({ logger }) =>
+          logger.error({ err: e }, "weekly-digest worker crashed")
+        )
+      );
+    }, 60 * 60 * 1000).unref?.(); // hourly check (fires Mondays 9-10)
   }
 }

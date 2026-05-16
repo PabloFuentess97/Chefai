@@ -37,6 +37,12 @@ model User {
   trialChargedAt  DateTime?       // when the auto-charge actually happened (success)
   stripeCustomerId String?        // saved Stripe customer id (set during signup w/ setup intent)
   stripePaymentMethodId String?   // default payment method saved at signup
+  // ----- Email marketing -----
+  newsletterOptIn      Boolean    @default(true)  // false after unsubscribe
+  emailUnsubscribeToken String?   @unique          // lazily generated
+  unsubscribedAt       DateTime?
+  // Reminder bookkeeping
+  trialReminderSentAt  DateTime?  // 1-day-before email
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -124,6 +130,7 @@ model Plan {
   subscriptions Subscription[]
   campaigns     Campaign[]     @relation("CampaignTargetPlan")
   trialUsers    User[]         @relation("TrialPlan")
+  emailCampaigns EmailCampaign[] @relation("EmailAudiencePlan")
 
   @@index([slug])
   @@index([isActive, isPublic])
@@ -166,6 +173,7 @@ model Campaign {
 
   targetPlan Plan   @relation("CampaignTargetPlan", fields: [targetPlanId], references: [id])
   users      User[] @relation("CampaignUsers")
+  emailCampaigns EmailCampaign[] @relation("EmailAudienceAcq")
 
   @@index([slug])
   @@index([isActive])
@@ -412,4 +420,95 @@ model ShoppingListItem {
   recipe Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
 
   @@index([userId, isBought, createdAt])
+}
+
+// ---------- EMAIL CAMPAIGNS ----------
+//
+// Marketing emails (newsletter, seasonal, broadcast) created from the admin
+// and sent in bulk to a filtered audience. Transactional emails (verify,
+// reset, trial-reminder, etc.) bypass this table and are sent inline.
+
+enum EmailAudienceMode {
+  ALL_USERS
+  NEWSLETTER_OPT_IN
+  PLAN
+  ACQUISITION_CAMPAIGN
+  DIETARY_PROFILE
+}
+
+enum EmailStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model EmailCampaign {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  // Visual template (same registry as landing campaigns where applicable)
+  templateKey     String
+  accentColor     String?
+  // Content (depending on template)
+  subject         String
+  preheader       String?
+  heroBadge       String?
+  heroTitle       String?
+  heroBody        String?
+  ctaLabel        String?
+  ctaUrl          String?
+  imageUrl        String?
+  // Targeting
+  audienceMode    EmailAudienceMode @default(ALL_USERS)
+  audiencePlanId  String?
+  audienceAcqCampaignId String?
+  audienceDietary String?
+  // Lifecycle
+  status          EmailStatus @default(DRAFT)
+  scheduledFor    DateTime?
+  sentAt          DateTime?
+  // Counters
+  recipientCount  Int @default(0)
+  sentCount       Int @default(0)
+  deliveredCount  Int @default(0)
+  openedCount     Int @default(0)
+  clickedCount    Int @default(0)
+  bouncedCount    Int @default(0)
+  failedCount     Int @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  audiencePlan        Plan?     @relation("EmailAudiencePlan", fields: [audiencePlanId], references: [id])
+  audienceAcqCampaign Campaign? @relation("EmailAudienceAcq", fields: [audienceAcqCampaignId], references: [id])
+  deliveries          EmailDelivery[]
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([templateKey])
+}
+
+model EmailDelivery {
+  id              String   @id @default(cuid())
+  emailCampaignId String
+  userId          String?  // null when sending to a test address
+  toEmail         String
+  resendId        String?  @unique
+  status          String   @default("queued") // queued | sent | delivered | opened | clicked | bounced | failed
+  errorMessage    String?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  bouncedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  emailCampaign EmailCampaign @relation(fields: [emailCampaignId], references: [id], onDelete: Cascade)
+
+  @@index([emailCampaignId])
+  @@index([userId])
+  @@index([resendId])
+  @@index([status])
 }

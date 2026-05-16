@@ -198,3 +198,45 @@ export const signupWithCampaignSchema = registerSchema.extend({
   campaignSlug: z.string().trim().min(1).max(40),
   stripePaymentMethodId: z.string().trim().min(1, "Falta el método de pago"),
 });
+
+// ---------- Email campaigns ----------
+
+export const upsertEmailCampaignSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).optional().nullable(),
+  templateKey: z.string().trim().min(1).max(40),
+  accentColor: z
+    .union([
+      z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color HEX inválido"),
+      z.literal(""),
+    ])
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null)),
+  subject: z.string().trim().min(1, "Falta el asunto").max(180),
+  preheader: z.string().trim().max(180).optional().nullable(),
+  heroBadge: z.string().trim().max(60).optional().nullable(),
+  heroTitle: z.string().trim().max(160).optional().nullable(),
+  heroBody: z.string().trim().max(5000).optional().nullable(),
+  ctaLabel: z.string().trim().max(60).optional().nullable(),
+  ctaUrl: z.string().trim().max(500).optional().nullable(),
+  imageUrl: z.string().trim().max(500).optional().nullable(),
+  audienceMode: z.enum([
+    "ALL_USERS",
+    "NEWSLETTER_OPT_IN",
+    "PLAN",
+    "ACQUISITION_CAMPAIGN",
+    "DIETARY_PROFILE",
+  ]),
+  audiencePlanId: z.string().trim().optional().nullable(),
+  audienceAcqCampaignId: z.string().trim().optional().nullable(),
+  audienceDietary: z.string().trim().optional().nullable(),
+  scheduledFor: z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((v) => {
+      if (!v) return null;
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    }),
+});

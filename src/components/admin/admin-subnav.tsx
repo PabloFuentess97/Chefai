@@ -8,6 +8,7 @@ import {
   Users,
   Palette,
   Megaphone,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ const TABS: Tab[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard },
   { href: "/admin/plans", label: "Planes", icon: Package },
   { href: "/admin/campaigns", label: "Campañas", icon: Megaphone },
+  { href: "/admin/emails", label: "Emails", icon: Mail },
   { href: "/admin/users", label: "Usuarios", icon: Users },
   { href: "/admin/branding", label: "Branding", icon: Palette },
 ];

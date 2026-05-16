@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "./db";
 import { chargeTrialAndSubscribe } from "./stripe";
 import { logger } from "./logger";
+import { sendTransactional } from "./email";
 
 /**
  * Find every user whose trial has expired and who hasn't been charged yet,
@@ -106,8 +107,38 @@ export async function processExpiredTrials(): Promise<{
       ]);
       charged += 1;
       logger.info({ userId: u.id, subscriptionId }, "trial-conversion: charged");
+
+      // Confirmation email (non-blocking)
+      try {
+        const nextDate = new Intl.DateTimeFormat("es-ES", {
+          dateStyle: "long",
+        }).format(currentPeriodEnd);
+        await sendTransactional({
+          to: u.email,
+          toUserId: u.id,
+          templateKey: "trial-converted",
+          vars: {
+            name: "chef",
+            planName: plan.name,
+            nextChargeDate: nextDate,
+          },
+        });
+      } catch (mailErr) {
+        logger.error({ err: mailErr, userId: u.id }, "converted email failed");
+      }
     } catch (e) {
       failed += 1;
+      // Send payment-failed email
+      try {
+        await sendTransactional({
+          to: u.email,
+          toUserId: u.id,
+          templateKey: "payment-failed",
+          vars: { name: "chef" },
+        });
+      } catch (mailErr) {
+        logger.error({ err: mailErr, userId: u.id }, "payment-failed email failed");
+      }
       logger.error(
         { err: e, userId: u.id, email: u.email },
         "trial-conversion failed — will retry next tick"
