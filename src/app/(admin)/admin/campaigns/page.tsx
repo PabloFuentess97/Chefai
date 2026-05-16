@@ -54,62 +54,75 @@ export default async function CampaignsPage() {
                 : 0;
             const expired = c.expiresAt && c.expiresAt < new Date();
             return (
-              <Link
+              <div
                 key={c.id}
-                href={`/admin/campaigns/${c.id}`}
                 className="rounded-xl border bg-card p-4 hover:border-primary hover:shadow-md transition-all"
               >
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold truncate">{c.name}</p>
-                      {!c.isActive && <Badge variant="outline">Pausada</Badge>}
-                      {expired && <Badge variant="destructive">Expirada</Badge>}
-                      {c.isActive && !expired && (
-                        <Badge>Activa</Badge>
-                      )}
+                <Link
+                  href={`/admin/campaigns/${c.id}`}
+                  className="block"
+                >
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold truncate">{c.name}</p>
+                        {!c.isActive && (
+                          <Badge variant="outline">Pausada</Badge>
+                        )}
+                        {expired && (
+                          <Badge variant="destructive">Expirada</Badge>
+                        )}
+                        {c.isActive && !expired && <Badge>Activa</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        /r/{c.slug}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Trial: {c.trialDays} días · {c.trialRecipesPerDay}{" "}
+                        recetas/día → plan{" "}
+                        <strong>
+                          {c.targetPlan?.name ?? "(plan eliminado)"}
+                        </strong>
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      /r/{c.slug}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Trial: {c.trialDays} días · {c.trialRecipesPerDay}{" "}
-                      recetas/día → plan{" "}
-                      <strong>{c.targetPlan?.name ?? "(plan eliminado)"}</strong>
-                    </p>
+                    <div className="flex items-center gap-5 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="size-4 text-muted-foreground" />
+                        <span className="font-semibold tabular-nums">
+                          {c.signupCount}
+                        </span>
+                        <span className="text-muted-foreground">signups</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="size-4 text-primary" />
+                        <span className="font-semibold tabular-nums">
+                          {c.conversionCount}
+                        </span>
+                        <span className="text-muted-foreground">
+                          ({conversionRate}%)
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-5 text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="size-4 text-muted-foreground" />
-                      <span className="font-semibold tabular-nums">
-                        {c.signupCount}
-                      </span>
-                      <span className="text-muted-foreground">signups</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="size-4 text-primary" />
-                      <span className="font-semibold tabular-nums">
-                        {c.conversionCount}
-                      </span>
-                      <span className="text-muted-foreground">
-                        ({conversionRate}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
+                </Link>
+                <div className="flex gap-3 mt-3 text-xs">
+                  <Link
+                    href={`/admin/campaigns/${c.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    Editar
+                  </Link>
                   <a
                     href={`/r/${c.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />
                     Ver landing
                   </a>
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
