@@ -74,7 +74,8 @@ export default async function CampaignsPage() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Trial: {c.trialDays} días · {c.trialRecipesPerDay}{" "}
-                      recetas/día → plan <strong>{c.targetPlan.name}</strong>
+                      recetas/día → plan{" "}
+                      <strong>{c.targetPlan?.name ?? "(plan eliminado)"}</strong>
                     </p>
                   </div>
                   <div className="flex items-center gap-5 text-sm">

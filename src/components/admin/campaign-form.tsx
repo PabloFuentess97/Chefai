@@ -37,7 +37,8 @@ type Campaign = {
   trialRecipesPerDay: number;
   targetPlanId: string;
   isActive: boolean;
-  expiresAt: Date | null;
+  // Server -> client serialization turns Date into string; accept both.
+  expiresAt: Date | string | null;
 };
 
 export function CampaignForm({
@@ -83,7 +84,7 @@ export function CampaignForm({
   }
 
   const expiresValue = campaign?.expiresAt
-    ? campaign.expiresAt.toISOString().slice(0, 10)
+    ? new Date(campaign.expiresAt).toISOString().slice(0, 10)
     : "";
 
   return (
