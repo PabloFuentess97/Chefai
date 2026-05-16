@@ -30,6 +30,8 @@
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@prisma/client": "^6.19.3",
     "@react-pdf/renderer": "^4.5.1",
+    "@stripe/react-stripe-js": "^6.3.0",
+    "@stripe/stripe-js": "^9.5.0",
     "@t3-oss/env-nextjs": "^0.13.11",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.2",

@@ -151,3 +151,41 @@ export const setUserPlanSchema = z.object({
   planSlug: z.string().trim().min(1).max(40),
   periodMonths: z.coerce.number().int().min(1).max(120).default(12),
 });
+
+// ---------- Campaigns ----------
+
+export const upsertCampaignSchema = z.object({
+  id: z.string().optional(),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones"),
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(500).optional().nullable(),
+  heroBadge: z.string().trim().max(40).optional().nullable(),
+  heroTitle: z.string().trim().max(120).optional().nullable(),
+  heroSubtitle: z.string().trim().max(300).optional().nullable(),
+  heroImageUrl: z.string().trim().max(500).optional().nullable(),
+  ctaLabel: z.string().trim().max(60).optional().nullable(),
+  bulletList: z.string().trim().max(500).optional().nullable(),
+  customHtml: z.string().trim().max(20_000).optional().nullable(),
+  trialDays: z.coerce.number().int().min(1).max(90),
+  trialRecipesPerDay: z.coerce.number().int().min(1).max(50),
+  targetPlanId: z.string().min(1, "Elige el plan objetivo"),
+  isActive: z.coerce.boolean().default(true),
+  expiresAt: z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((v) => {
+      if (!v) return null;
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    }),
+});
+
+export const signupWithCampaignSchema = registerSchema.extend({
+  campaignSlug: z.string().trim().min(1).max(40),
+  stripePaymentMethodId: z.string().trim().min(1, "Falta el método de pago"),
+});

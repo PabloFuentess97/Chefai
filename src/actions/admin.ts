@@ -290,3 +290,103 @@ export async function cancelUserSubscriptionAction(
   revalidatePath("/admin/users");
   return { ok: true, data: { canceled: true } };
 }
+
+// ---------- Campaigns ----------
+
+export async function upsertCampaignAction(
+  _prev: ActionResult<{ id: string; slug: string }> | null,
+  formData: FormData
+): Promise<ActionResult<{ id: string; slug: string }>> {
+  await requireAdmin();
+
+  const { upsertCampaignSchema } = await import("@/lib/validators");
+  const parsed = upsertCampaignSchema.safeParse({
+    id: formData.get("id") || undefined,
+    slug: formData.get("slug"),
+    name: formData.get("name"),
+    description: formData.get("description") || undefined,
+    heroBadge: formData.get("heroBadge") || undefined,
+    heroTitle: formData.get("heroTitle") || undefined,
+    heroSubtitle: formData.get("heroSubtitle") || undefined,
+    heroImageUrl: formData.get("heroImageUrl") || undefined,
+    ctaLabel: formData.get("ctaLabel") || undefined,
+    bulletList: formData.get("bulletList") || undefined,
+    customHtml: formData.get("customHtml") || undefined,
+    trialDays: formData.get("trialDays"),
+    trialRecipesPerDay: formData.get("trialRecipesPerDay"),
+    targetPlanId: formData.get("targetPlanId"),
+    isActive: formData.get("isActive") === "on",
+    expiresAt: formData.get("expiresAt") || null,
+  });
+  if (!parsed.success) return fromZod(parsed.error);
+
+  const data = parsed.data;
+  try {
+    const saved = data.id
+      ? await prisma.campaign.update({
+          where: { id: data.id },
+          data: {
+            slug: data.slug,
+            name: data.name,
+            description: data.description ?? null,
+            heroBadge: data.heroBadge ?? null,
+            heroTitle: data.heroTitle ?? null,
+            heroSubtitle: data.heroSubtitle ?? null,
+            heroImageUrl: data.heroImageUrl ?? null,
+            ctaLabel: data.ctaLabel ?? null,
+            bulletList: data.bulletList ?? null,
+            customHtml: data.customHtml ?? null,
+            trialDays: data.trialDays,
+            trialRecipesPerDay: data.trialRecipesPerDay,
+            targetPlanId: data.targetPlanId,
+            isActive: data.isActive,
+            expiresAt: data.expiresAt,
+          },
+        })
+      : await prisma.campaign.create({
+          data: {
+            slug: data.slug,
+            name: data.name,
+            description: data.description ?? null,
+            heroBadge: data.heroBadge ?? null,
+            heroTitle: data.heroTitle ?? null,
+            heroSubtitle: data.heroSubtitle ?? null,
+            heroImageUrl: data.heroImageUrl ?? null,
+            ctaLabel: data.ctaLabel ?? null,
+            bulletList: data.bulletList ?? null,
+            customHtml: data.customHtml ?? null,
+            trialDays: data.trialDays,
+            trialRecipesPerDay: data.trialRecipesPerDay,
+            targetPlanId: data.targetPlanId,
+            isActive: data.isActive,
+            expiresAt: data.expiresAt,
+          },
+        });
+
+    revalidatePath("/admin/campaigns");
+    revalidatePath(`/r/${saved.slug}`);
+    return { ok: true, data: { id: saved.id, slug: saved.slug } };
+  } catch (e) {
+    const msg =
+      e instanceof Error && e.message.includes("Unique constraint")
+        ? "Ya existe una campaña con ese slug"
+        : "No se pudo guardar la campaña";
+    return fail("DB_ERROR", msg);
+  }
+}
+
+export async function deleteCampaignAction(
+  campaignId: string
+): Promise<ActionResult<{ deleted: true }>> {
+  await requireAdmin();
+  if (!campaignId) return fail("VALIDATION", "Falta el ID");
+
+  // Detach users so we don't cascade-delete them.
+  await prisma.user.updateMany({
+    where: { campaignId },
+    data: { campaignId: null },
+  });
+  await prisma.campaign.delete({ where: { id: campaignId } });
+  revalidatePath("/admin/campaigns");
+  return { ok: true, data: { deleted: true } };
+}

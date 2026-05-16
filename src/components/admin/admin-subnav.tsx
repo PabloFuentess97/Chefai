@@ -7,6 +7,7 @@ import {
   Package,
   Users,
   Palette,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ type Tab = { href: string; label: string; icon: LucideIcon };
 const TABS: Tab[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard },
   { href: "/admin/plans", label: "Planes", icon: Package },
+  { href: "/admin/campaigns", label: "Campañas", icon: Megaphone },
   { href: "/admin/users", label: "Usuarios", icon: Users },
   { href: "/admin/branding", label: "Branding", icon: Palette },
 ];

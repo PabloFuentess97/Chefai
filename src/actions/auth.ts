@@ -18,6 +18,7 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  emailSchema,
 } from "@/lib/validators";
 import {
   sendEmail,
@@ -203,6 +204,158 @@ export async function resetPasswordAction(
   await logoutAllSessionsForUser(user.id);
 
   return { ok: true, data: { updated: true } };
+}
+
+/**
+ * Public action used by /r/[slug] landings: prepares a Stripe SetupIntent
+ * (no charge) so the landing can collect a card before signup. We don't
+ * have a user yet — the customer will be re-attached to the user on signup.
+ */
+export async function prepareCampaignSetupIntentAction(input: {
+  email: string;
+  campaignSlug: string;
+}): Promise<ActionResult<{ clientSecret: string; stripeCustomerId: string }>> {
+  const e = emailSchema.safeParse(input.email);
+  if (!e.success) return fail("VALIDATION", "Email no válido", "email");
+
+  // Campaign sanity check
+  const campaign = await prisma.campaign.findUnique({
+    where: { slug: input.campaignSlug },
+  });
+  if (!campaign || !campaign.isActive)
+    return fail("CAMPAIGN_NOT_FOUND", "Campaña no disponible");
+  if (campaign.expiresAt && campaign.expiresAt < new Date())
+    return fail("CAMPAIGN_EXPIRED", "Esta campaña ha terminado");
+
+  // Avoid creating duplicate trials for the same email
+  const exists = await prisma.user.findUnique({
+    where: { email: e.data },
+  });
+  if (exists) return fail("EMAIL_TAKEN", "Ya existe una cuenta con ese email", "email");
+
+  try {
+    const { createSetupIntentForEmail } = await import("@/lib/stripe");
+    const { clientSecret, customerId } = await createSetupIntentForEmail({
+      email: e.data,
+      metadata: { campaignSlug: campaign.slug },
+    });
+    return {
+      ok: true,
+      data: { clientSecret, stripeCustomerId: customerId },
+    };
+  } catch (err) {
+    logger.error({ err, email: e.data }, "setup intent create failed");
+    return fail(
+      "STRIPE_ERROR",
+      "No se pudo iniciar el método de pago. Inténtalo de nuevo."
+    );
+  }
+}
+
+/**
+ * Sign up a user coming from a campaign landing. By this point the
+ * frontend has confirmed the SetupIntent and we have a saved Stripe
+ * customer + payment method id.
+ */
+export async function registerWithCampaignAction(
+  _prev: ActionResult<{ userId: string }> | null,
+  formData: FormData
+): Promise<ActionResult<{ userId: string }>> {
+  const { signupWithCampaignSchema } = await import("@/lib/validators");
+  const parsed = signupWithCampaignSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    name: formData.get("name") || undefined,
+    campaignSlug: formData.get("campaignSlug"),
+    stripePaymentMethodId: formData.get("stripePaymentMethodId"),
+  });
+  if (!parsed.success) return fromZod(parsed.error);
+
+  const { ip } = await getRequestMeta();
+  const rl = await rateLimit(`auth:register:${ip ?? "anon"}`, 10, 60);
+  if (!rl.ok) return fail("RATE_LIMIT", "Demasiados intentos, espera un momento");
+
+  const campaign = await prisma.campaign.findUnique({
+    where: { slug: parsed.data.campaignSlug },
+  });
+  if (!campaign || !campaign.isActive)
+    return fail("CAMPAIGN_NOT_FOUND", "Campaña no disponible");
+  if (campaign.expiresAt && campaign.expiresAt < new Date())
+    return fail("CAMPAIGN_EXPIRED", "Esta campaña ha terminado");
+
+  const exists = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+  });
+  if (exists)
+    return fail("EMAIL_TAKEN", "Ya existe una cuenta con ese email", "email");
+
+  // Look up the Stripe customer attached to this PM (we don't trust the
+  // client to send the customerId — Stripe gives us the canonical mapping).
+  let stripeCustomerId: string | null = null;
+  try {
+    const { getStripe } = await import("@/lib/stripe");
+    const stripe = getStripe();
+    const pm = await stripe.paymentMethods.retrieve(
+      parsed.data.stripePaymentMethodId
+    );
+    stripeCustomerId =
+      typeof pm.customer === "string"
+        ? pm.customer
+        : pm.customer?.id ?? null;
+    if (!stripeCustomerId) {
+      return fail("STRIPE_ERROR", "Método de pago sin cliente asociado");
+    }
+  } catch (e) {
+    logger.error({ err: e }, "retrieve payment method failed");
+    return fail("STRIPE_ERROR", "No se pudo validar el método de pago");
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password);
+  const verifyToken = crypto.randomBytes(24).toString("hex");
+  const trialStartedAt = new Date();
+  const trialEndsAt = new Date(
+    trialStartedAt.getTime() + campaign.trialDays * 86400_000
+  );
+
+  const user = await prisma.user.create({
+    data: {
+      email: parsed.data.email,
+      passwordHash,
+      name: parsed.data.name ?? null,
+      verifyToken,
+      campaignId: campaign.id,
+      trialStartedAt,
+      trialEndsAt,
+      trialPlanId: campaign.targetPlanId,
+      stripeCustomerId,
+      stripePaymentMethodId: parsed.data.stripePaymentMethodId,
+    },
+  });
+
+  await prisma.campaign.update({
+    where: { id: campaign.id },
+    data: { signupCount: { increment: 1 } },
+  });
+
+  // Best-effort welcome email
+  try {
+    const branding = await getBranding();
+    const link = `${env.APP_URL}/verify-email?token=${verifyToken}`;
+    const tpl = verifyEmailTemplate({
+      brandName: branding.name,
+      link,
+      toName: user.name,
+    });
+    await sendEmail({ to: user.email, ...tpl });
+  } catch (e) {
+    logger.error({ err: e }, "verify email send failed");
+  }
+
+  const meta = await getRequestMeta();
+  const { token, expiresAt } = await signSession(user.id, user.role, meta);
+  await setSessionCookie(token, expiresAt);
+
+  return { ok: true, data: { userId: user.id } };
 }
 
 export async function verifyEmailAction(token: string): Promise<ActionResult<{ verified: true }>> {

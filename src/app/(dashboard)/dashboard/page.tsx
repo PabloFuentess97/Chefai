@@ -12,6 +12,7 @@ import { getCurrentPlan } from "@/lib/plans";
 import { getUsage } from "@/lib/usage";
 import { prisma } from "@/lib/db";
 import { UsageMeter } from "@/components/dashboard/usage-meter";
+import { TrialBanner } from "@/components/dashboard/trial-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -34,6 +35,7 @@ export default async function DashboardHome() {
 
   return (
     <div className="space-y-8">
+      <TrialBanner userId={user.id} />
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">

@@ -305,7 +305,7 @@ export async function createMealPlanAction(
       tokens: totalTokens,
       costCents: totalCost,
     },
-    currentPeriodKey()
+    { periodKey: currentPeriodKey(), alsoTrackDaily: true }
   );
 
   revalidatePath("/planner");

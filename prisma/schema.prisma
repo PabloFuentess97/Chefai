@@ -29,6 +29,14 @@ model User {
   resetTokenExp   DateTime?
   preferredGoal   String?         // diet goal default: deficit | maintain | volume | definition | muscle
   dietaryProfile  String?         // dietary profile: omnivore | vegetarian | vegan | pescatarian | keto | lowcarb | glutenfree | lactosefree | paleo | mediterranean
+  // ----- Campaign / trial -----
+  campaignId      String?
+  trialStartedAt  DateTime?
+  trialEndsAt     DateTime?
+  trialPlanId     String?         // plan to charge once the trial expires
+  trialChargedAt  DateTime?       // when the auto-charge actually happened (success)
+  stripeCustomerId String?        // saved Stripe customer id (set during signup w/ setup intent)
+  stripePaymentMethodId String?   // default payment method saved at signup
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -40,9 +48,13 @@ model User {
   payments     Payment[]
   mealPlans    MealPlan[]
   shoppingList ShoppingListItem[]
+  campaign     Campaign?          @relation("CampaignUsers", fields: [campaignId], references: [id])
+  trialPlan    Plan?              @relation("TrialPlan", fields: [trialPlanId], references: [id])
 
   @@index([email])
   @@index([createdAt])
+  @@index([campaignId])
+  @@index([trialEndsAt])
 }
 
 model Session {
@@ -110,9 +122,51 @@ model Plan {
   updatedAt       DateTime        @updatedAt
 
   subscriptions Subscription[]
+  campaigns     Campaign[]     @relation("CampaignTargetPlan")
+  trialUsers    User[]         @relation("TrialPlan")
 
   @@index([slug])
   @@index([isActive, isPublic])
+}
+
+// ---------- CAMPAIGNS ----------
+//
+// External landing-page campaigns with custom URLs (e.g. /r/7dias-gratis).
+// Each campaign defines a free trial (N days + N recipes/day) that converts
+// into a subscription to `targetPlan` once the trial expires.
+
+model Campaign {
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  name                String
+  description         String?
+  // Landing copy
+  heroBadge           String?   // e.g. "7 dias gratis"
+  heroTitle           String?
+  heroSubtitle        String?
+  heroImageUrl        String?
+  ctaLabel            String?   // e.g. "Empezar gratis"
+  bulletList          String?   // pipe-separated bullets ("Recetas IA|Foto nevera|Cocina por voz")
+  customHtml          String?   // optional raw HTML override for the landing
+  // Trial config
+  trialDays           Int       @default(7)
+  trialRecipesPerDay  Int       @default(5)
+  targetPlanId        String
+  // Lifecycle
+  isActive            Boolean   @default(true)
+  expiresAt           DateTime? // after this date, /r/<slug> stops accepting signups
+  // Stats (denormalised counters; live aggregate also available)
+  signupCount         Int       @default(0)
+  conversionCount     Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  targetPlan Plan   @relation("CampaignTargetPlan", fields: [targetPlanId], references: [id])
+  users      User[] @relation("CampaignUsers")
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([expiresAt])
 }
 
 model Subscription {

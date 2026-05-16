@@ -16,7 +16,13 @@ import {
   canGenerate,
   planHasFeature,
 } from "@/lib/plans";
-import { getUsage, incrementUsage, currentPeriodKey } from "@/lib/usage";
+import {
+  getUsage,
+  incrementUsage,
+  currentPeriodKey,
+  getDailyUsage,
+} from "@/lib/usage";
+import { getActiveTrialCampaign, isOnActiveTrial } from "@/lib/campaigns";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { env } from "@/env";
@@ -102,7 +108,29 @@ export async function generateRecipesAction(
 
   const plan = await getCurrentPlan(user.id);
   const usage = await getUsage(user.id);
-  const can = canGenerate(plan, usage.recipesUsed);
+
+  // Trial users get a daily cap from the campaign instead of monthly.
+  const trialUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      trialEndsAt: true,
+      trialChargedAt: true,
+      campaignId: true,
+    },
+  });
+  let trialQuota: { dailyCap: number; usedToday: number } | null = null;
+  if (trialUser && isOnActiveTrial(trialUser)) {
+    const campaign = await getActiveTrialCampaign(trialUser);
+    if (campaign) {
+      const usedToday = await getDailyUsage(user.id);
+      trialQuota = {
+        dailyCap: campaign.trialRecipesPerDay,
+        usedToday,
+      };
+    }
+  }
+
+  const can = canGenerate(plan, usage.recipesUsed, trialQuota);
   if (!can.allowed) return fail("PLAN_LIMIT", can.reason);
 
   let parsedResp;
@@ -227,7 +255,7 @@ export async function generateRecipesAction(
       tokens: usageInfo.tokens,
       costCents: usageInfo.costCents + imageCostCents,
     },
-    currentPeriodKey()
+    { periodKey: currentPeriodKey(), alsoTrackDaily: true }
   );
 
   revalidatePath("/recipes");
