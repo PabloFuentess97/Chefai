@@ -53,112 +53,121 @@ export default async function CampaignLandingPage({ params }: Props) {
 
   return (
     <div className="min-h-svh bg-background">
-      {/* Top bar */}
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-          <div className="text-sm font-bold tracking-wide">{branding.name}</div>
+      {/* Top bar — overlays the hero, transparent so the gradient bleeds */}
+      <header className="absolute inset-x-0 top-0 z-30">
+        <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+          <div className="text-base font-bold tracking-wide text-white drop-shadow-sm">
+            {branding.name}
+          </div>
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-sm text-white/85 hover:text-white"
           >
             Iniciar sesión
           </Link>
         </div>
       </header>
 
-      {/* Decorative banner band — only when a template is selected */}
-      {template && (
-        <div
-          className="relative h-16 md:h-20 overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
-          }}
-        >
+      {/* Hero with full gradient background */}
+      <section
+        className="relative overflow-hidden text-white"
+        style={{
+          background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+        }}
+      >
+        {/* Decorative motif scattered across the hero */}
+        <div className="absolute inset-0 opacity-25 pointer-events-none">
           <CampaignDecoration kind={decoration} color="#ffffff" />
         </div>
-      )}
+        {/* Soft radial highlight top-right for depth */}
+        <div
+          className="absolute -top-32 -right-32 size-[480px] rounded-full opacity-30 blur-3xl"
+          style={{ background: "rgba(255,255,255,0.55)" }}
+        />
+        {/* Vignette at the bottom so the card has contrast */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.18) 100%)",
+          }}
+        />
 
-      {/* Hero */}
-      <section className="mx-auto max-w-5xl px-4 pt-10 pb-8 md:pt-16 md:pb-16 relative">
-        {template && (
-          <div className="absolute inset-0 pointer-events-none -z-10 opacity-30">
-            <CampaignDecoration kind={decoration} color={accent} />
-          </div>
-        )}
-        <div className="grid md:grid-cols-2 gap-10 items-center">
-          <div className="space-y-5">
-            {campaign.heroBadge && (
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                style={{
-                  background: `${accent}1f`,
-                  color: accent,
-                }}
-              >
-                <Sparkles className="size-3.5" />
-                {campaign.heroBadge}
-              </span>
-            )}
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-pretty">
-              {campaign.heroTitle ?? campaign.name}
-            </h1>
-            {campaign.heroSubtitle && (
-              <p className="text-lg text-muted-foreground text-pretty leading-relaxed">
-                {campaign.heroSubtitle}
-              </p>
-            )}
+        <div className="relative mx-auto max-w-6xl px-4 pt-28 pb-12 md:pt-32 md:pb-20">
+          <div className="grid md:grid-cols-[1.1fr_1fr] gap-10 items-center">
+            {/* Left — pitch */}
+            <div className="space-y-6">
+              {campaign.heroBadge && (
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/15 text-white backdrop-blur-sm border border-white/25">
+                  <Sparkles className="size-3.5" />
+                  {campaign.heroBadge}
+                </span>
+              )}
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-pretty leading-[1.02]">
+                {campaign.heroTitle ?? campaign.name}
+              </h1>
+              {campaign.heroSubtitle && (
+                <p className="text-lg md:text-xl text-white/90 text-pretty leading-relaxed max-w-xl">
+                  {campaign.heroSubtitle}
+                </p>
+              )}
 
-            {bullets.length > 0 && (
-              <ul className="space-y-2 pt-2">
-                {bullets.map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <Check
-                      className="size-4 mt-0.5 shrink-0"
-                      style={{ color: accent }}
-                    />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+              {bullets.length > 0 && (
+                <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 pt-2 max-w-xl">
+                  {bullets.map((b, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-sm md:text-base text-white/95"
+                    >
+                      <span
+                        className="size-5 rounded-full bg-white/20 grid place-items-center shrink-0 mt-0.5"
+                        aria-hidden="true"
+                      >
+                        <Check className="size-3" />
+                      </span>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-            <div className="pt-3 text-xs text-muted-foreground">
-              Hoy {campaign.trialDays} días gratis ·{" "}
-              {campaign.trialRecipesPerDay} recetas/día · al finalizar pasarás
-              a <strong>{campaign.targetPlan.name}</strong>{" "}
-              ({(campaign.targetPlan.priceCents / 100).toFixed(2)} €/
-              {campaign.targetPlan.interval === "MONTH" ? "mes" : "año"}).
-              Puedes cancelar antes y no se cobra nada.
+              <div className="pt-3 text-xs md:text-sm text-white/75 max-w-xl">
+                {campaign.trialDays} días gratis ·{" "}
+                {campaign.trialRecipesPerDay} recetas/día. Al finalizar pasarás
+                a <strong className="text-white">{campaign.targetPlan.name}</strong>{" "}
+                ({(campaign.targetPlan.priceCents / 100).toFixed(2)} €/
+                {campaign.targetPlan.interval === "MONTH" ? "mes" : "año"}).
+                Puedes cancelar antes y no se cobra nada.
+              </div>
             </div>
-          </div>
 
-          {/* Right column — image or signup */}
-          <div>
-            {campaign.heroImageUrl ? (
-              <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border bg-muted">
-                <Image
-                  src={campaign.heroImageUrl}
-                  alt={campaign.heroTitle ?? campaign.name}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div
-                className="rounded-2xl border p-6 bg-card shadow-sm"
-                style={{
-                  borderColor: `${accent}40`,
-                  boxShadow: `0 10px 30px -10px ${accent}26`,
-                }}
-              >
-                <CampaignSignupForm
-                  campaignSlug={campaign.slug}
-                  ctaLabel={campaign.ctaLabel ?? "Empezar gratis"}
-                  brandColor={accent}
-                />
-              </div>
-            )}
+            {/* Right — signup card or image */}
+            <div className="md:pl-4">
+              {campaign.heroImageUrl ? (
+                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl">
+                  <Image
+                    src={campaign.heroImageUrl}
+                    alt={campaign.heroTitle ?? campaign.name}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-white text-foreground p-6 md:p-7 shadow-2xl ring-1 ring-black/5">
+                  <div className="text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2"
+                    style={{ color: accent }}>
+                    <Sparkles className="size-4" />
+                    Empieza ahora
+                  </div>
+                  <CampaignSignupForm
+                    campaignSlug={campaign.slug}
+                    ctaLabel={campaign.ctaLabel ?? "Empezar gratis"}
+                    brandColor={accent}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -167,15 +176,21 @@ export default async function CampaignLandingPage({ params }: Props) {
       {campaign.heroImageUrl && (
         <section
           id="signup"
-          className="mx-auto max-w-xl px-4 pb-20 -mt-2"
+          className="mx-auto max-w-xl px-4 py-12 md:py-16"
         >
           <div
-            className="rounded-2xl border p-6 bg-card shadow-sm"
+            className="rounded-2xl bg-card p-6 md:p-7 shadow-xl ring-1 ring-black/5"
             style={{
-              borderColor: `${accent}40`,
-              boxShadow: `0 10px 30px -10px ${accent}26`,
+              boxShadow: `0 20px 40px -16px ${accent}40`,
             }}
           >
+            <div
+              className="text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2"
+              style={{ color: accent }}
+            >
+              <Sparkles className="size-4" />
+              Empieza ahora
+            </div>
             <CampaignSignupForm
               campaignSlug={campaign.slug}
               ctaLabel={campaign.ctaLabel ?? "Empezar gratis"}
@@ -185,8 +200,29 @@ export default async function CampaignLandingPage({ params }: Props) {
         </section>
       )}
 
+      {/* Trust strip */}
+      <section className="mx-auto max-w-5xl px-4 py-10 md:py-14">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <TrustItem
+            accent={accent}
+            title="Sin compromiso"
+            body="Cancela cuando quieras desde tu cuenta. Si lo haces antes de que acabe el trial, no se cobra nada."
+          />
+          <TrustItem
+            accent={accent}
+            title="Tarjeta segura"
+            body="El pago se procesa con Stripe. ChefAI nunca ve ni guarda tu número de tarjeta."
+          />
+          <TrustItem
+            accent={accent}
+            title="Tu cocina, tus reglas"
+            body="Configura tu dieta —vegano, keto, sin gluten— y la IA respeta cada receta y menú."
+          />
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="border-t border-border/60 mt-12">
+      <footer className="border-t border-border/60 mt-4">
         <div className="mx-auto max-w-5xl px-4 py-6 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-3">
           <span>
             © {new Date().getFullYear()} {branding.name}
@@ -204,6 +240,29 @@ export default async function CampaignLandingPage({ params }: Props) {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function TrustItem({
+  accent,
+  title,
+  body,
+}: {
+  accent: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <div
+        className="size-9 rounded-lg grid place-items-center mb-3"
+        style={{ background: `${accent}15`, color: accent }}
+      >
+        <Check className="size-4" />
+      </div>
+      <p className="font-semibold text-sm mb-1">{title}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{body}</p>
     </div>
   );
 }

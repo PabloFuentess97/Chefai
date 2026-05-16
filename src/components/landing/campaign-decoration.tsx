@@ -19,12 +19,22 @@ export function CampaignDecoration({
 }) {
   if (kind === "none") return null;
 
-  const N = 18;
-  const points = Array.from({ length: N }, (_, i) => ({
-    x: r(i * 13 + 1) * 100,
-    y: r(i * 13 + 2) * 100,
-    s: 0.4 + r(i * 13 + 3) * 0.8,
-    rot: r(i * 13 + 4) * 360,
+  // More density + varied sizes (small "stars" + big "feature" motifs)
+  const N_SMALL = 38;
+  const N_LARGE = 6;
+  const small = Array.from({ length: N_SMALL }, (_, i) => ({
+    x: r(i * 19 + 1) * 100,
+    y: r(i * 19 + 2) * 100,
+    s: 0.6 + r(i * 19 + 3) * 1.3,
+    rot: r(i * 19 + 4) * 360,
+    op: 0.35 + r(i * 19 + 5) * 0.5,
+  }));
+  const large = Array.from({ length: N_LARGE }, (_, i) => ({
+    x: r(i * 31 + 100) * 100,
+    y: r(i * 31 + 101) * 100,
+    s: 2.5 + r(i * 31 + 102) * 1.8,
+    rot: r(i * 31 + 103) * 360,
+    op: 0.18 + r(i * 31 + 104) * 0.2,
   }));
 
   return (
@@ -34,11 +44,22 @@ export function CampaignDecoration({
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
     >
-      {points.map((p, i) => (
+      {/* Big background shapes first (low opacity) */}
+      {large.map((p, i) => (
         <g
-          key={i}
-          transform={`translate(${p.x} ${p.y}) scale(${p.s * 0.6}) rotate(${p.rot})`}
-          opacity={0.55}
+          key={`l${i}`}
+          transform={`translate(${p.x} ${p.y}) scale(${p.s}) rotate(${p.rot})`}
+          opacity={p.op}
+        >
+          <Motif kind={kind} color={color} />
+        </g>
+      ))}
+      {/* Small scattered shapes on top */}
+      {small.map((p, i) => (
+        <g
+          key={`s${i}`}
+          transform={`translate(${p.x} ${p.y}) scale(${p.s * 0.8}) rotate(${p.rot})`}
+          opacity={p.op}
         >
           <Motif kind={kind} color={color} />
         </g>
