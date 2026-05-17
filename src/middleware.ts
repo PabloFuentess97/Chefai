@@ -1,8 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { env } from "@/env";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET ?? "");
-const COOKIE = process.env.SESSION_COOKIE_NAME ?? "session";
+// JWT_SECRET is validated as min(32) in src/env.ts — refuse to boot if
+// it's missing. Never fall back to an empty secret (would let attackers
+// forge tokens with secret="").
+const SECRET = new TextEncoder().encode(env.JWT_SECRET);
+
+// __Host- prefix forces Secure + Path=/ + no Domain. Only safe over HTTPS,
+// so we keep the legacy name in local dev. Must mirror the same logic in
+// src/lib/auth.ts.
+const APP_URL = env.APP_URL ?? "";
+const USE_HOST_PREFIX = APP_URL.startsWith("https://");
+const COOKIE =
+  (USE_HOST_PREFIX ? "__Host-" : "") +
+  (env.SESSION_COOKIE_NAME ?? "session");
 
 const PROTECTED = [
   /^\/dashboard/,

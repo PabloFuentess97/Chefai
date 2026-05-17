@@ -63,4 +63,10 @@ ENV PATH="/app/node_modules/.bin:${PATH}"
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
-CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js db push --accept-data-loss && node ./node_modules/prisma/build/index.js db seed"]
+# NOTE: --accept-data-loss removed for safety. If a destructive schema
+# change is detected (e.g. dropping a column with data), `db push` will
+# abort with a clear error and require manual operator intervention via
+# `prisma migrate dev` locally + `prisma migrate deploy` in CI. This
+# trades some operational friction for protection against accidental
+# data destruction on production.
+CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js db push && node ./node_modules/prisma/build/index.js db seed"]

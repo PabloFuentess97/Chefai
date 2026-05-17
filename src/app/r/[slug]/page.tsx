@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Sparkles, Check } from "lucide-react";
+import DOMPurify from "isomorphic-dompurify";
 
 import { getActiveCampaignBySlug } from "@/lib/campaigns";
 import { getCampaignTemplate } from "@/lib/campaign-templates";
@@ -27,12 +28,38 @@ export default async function CampaignLandingPage({ params }: Props) {
   if (!campaign) notFound();
 
   // If the admin provided custom HTML, render that instead — escape hatch
-  // for full creative control. Mind the security implications (admin-only).
+  // for full creative control. Defense in depth: even though only the
+  // admin can write this field, we sanitize via DOMPurify to neutralize
+  // any <script>, on* handlers, javascript: URLs, etc. that would lead
+  // to stored XSS if the admin account is ever compromised or if a
+  // future SQL injection bug lets attackers write to this column.
   if (campaign.customHtml) {
+    const clean = DOMPurify.sanitize(campaign.customHtml, {
+      ALLOWED_TAGS: [
+        "div", "span", "p", "a", "img", "br", "hr",
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        "ul", "ol", "li",
+        "strong", "em", "b", "i", "u", "s", "small",
+        "section", "article", "header", "footer", "main", "nav",
+        "blockquote", "code", "pre",
+        "table", "thead", "tbody", "tr", "th", "td",
+      ],
+      ALLOWED_ATTR: [
+        "href", "src", "alt", "title",
+        "class", "style",
+        "target", "rel",
+        "width", "height",
+        "id",
+      ],
+      // Block javascript: URLs and inline event handlers
+      ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|\/|#)/i,
+      FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input"],
+      FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus"],
+    });
     return (
       <div
         className="min-h-svh bg-background"
-        dangerouslySetInnerHTML={{ __html: campaign.customHtml }}
+        dangerouslySetInnerHTML={{ __html: clean }}
       />
     );
   }

@@ -12,11 +12,22 @@ import type { SessionUser } from "@/types/session";
 
 const SECRET = new TextEncoder().encode(env.JWT_SECRET);
 const TTL_DAYS = env.SESSION_TTL_DAYS;
-const COOKIE_NAME = env.SESSION_COOKIE_NAME;
+// Sliding-window: bump the session's expiresAt forward each time we
+// observe activity within RENEW_WINDOW_DAYS of expiry. Caps an idle
+// session at 7 days while keeping active users logged in indefinitely.
+const RENEW_WINDOW_DAYS = 7;
+
 // Cookie Secure flag depends on whether the app is served over HTTPS,
 // not on NODE_ENV. This lets us run prod build over plain http://IP:3000.
 // Read directly from process.env so it's safe during build with SKIP_ENV_VALIDATION.
 const COOKIE_SECURE = (process.env.APP_URL ?? "").startsWith("https://");
+
+// __Host- prefix forces Secure + Path=/ + no Domain — defeats subdomain
+// cookie injection. Only valid over HTTPS, so we keep the legacy name on
+// HTTP (local dev). Must mirror the same logic in src/middleware.ts.
+const COOKIE_NAME = COOKIE_SECURE
+  ? "__Host-" + env.SESSION_COOKIE_NAME
+  : env.SESSION_COOKIE_NAME;
 
 export type JwtPayload = {
   sub: string;
@@ -62,6 +73,9 @@ export async function setSessionCookie(token: string, expiresAt: Date) {
   c.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
+    // __Host- prefix mandates Secure=true. On HTTP local dev we use the
+    // unprefixed name and let Secure follow COOKIE_SECURE (false → cookie
+    // works over http://localhost).
     secure: COOKIE_SECURE,
     expires: expiresAt,
     path: "/",
@@ -116,6 +130,24 @@ export async function getSession(): Promise<SessionUser | null> {
     return null;
   }
 
+  // Sliding-window renewal: if the session is within RENEW_WINDOW_DAYS of
+  // expiry, push expiresAt forward. Active users stay logged in, idle ones
+  // (no requests for RENEW_WINDOW_DAYS) drop off automatically. Best-effort:
+  // a DB failure on renewal must not lock the user out of the request.
+  const now = Date.now();
+  const renewThresholdMs = RENEW_WINDOW_DAYS * 86400_000;
+  if (session.expiresAt.getTime() - now < renewThresholdMs) {
+    const newExpiry = new Date(now + TTL_DAYS * 86400_000);
+    try {
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { expiresAt: newExpiry },
+      });
+    } catch {
+      // ignore — the user is still authenticated for this request
+    }
+  }
+
   return {
     id: session.user.id,
     email: session.user.email,
@@ -136,6 +168,18 @@ export async function requireAdmin(): Promise<SessionUser> {
   if (!session) redirect("/login");
   if (session.role !== Role.ADMIN) redirect("/dashboard");
   return session;
+}
+
+/**
+ * Returns a SessionUser only if their email is verified. Use this on
+ * resource-consuming actions (recipe gen, planner gen, vision OCR, etc.)
+ * to block unverified accounts from burning quota and abusing the IA budget.
+ *
+ * Does NOT redirect — the caller decides how to react (typically: return
+ * a typed error so the UI can show a "verifica tu email" prompt).
+ */
+export function isEmailVerified(session: SessionUser): boolean {
+  return Boolean(session.emailVerifiedAt);
 }
 
 export async function logoutSession() {

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { analyzeImage } from "@/lib/ai/text";
-import { requireUser } from "@/lib/auth";
+import { requireUser, isEmailVerified } from "@/lib/auth";
 import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -35,6 +35,12 @@ export async function detectIngredientsFromImageAction(
   formData: FormData
 ): Promise<ActionResult<DetectResult>> {
   const user = await requireUser();
+  if (!isEmailVerified(user)) {
+    return fail(
+      "EMAIL_NOT_VERIFIED",
+      "Verifica tu email antes de usar la foto de la nevera."
+    );
+  }
 
   const plan = await getCurrentPlan(user.id);
   if (!planHasFeature(plan, "fridgePhoto")) {
@@ -48,8 +54,12 @@ export async function detectIngredientsFromImageAction(
   if (!(file instanceof File)) {
     return fail("VALIDATION", "No se recibió ninguna imagen");
   }
-  if (file.size > 10 * 1024 * 1024) {
-    return fail("FILE_TOO_LARGE", "La imagen excede 10 MB");
+  // 5 MB is the practical ceiling for fridge photos taken by phones —
+  // the OCR pipeline doesn't get more accurate above that, and going
+  // higher inflates the in-memory base64 string ~33% per request,
+  // which is an OOM vector under concurrent uploads.
+  if (file.size > 5 * 1024 * 1024) {
+    return fail("FILE_TOO_LARGE", "La imagen excede 5 MB");
   }
   if (!file.type.startsWith("image/")) {
     return fail("BAD_TYPE", "El archivo no es una imagen");

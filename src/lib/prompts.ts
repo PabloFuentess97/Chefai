@@ -96,7 +96,36 @@ Reglas estrictas (en orden de prioridad):
 11. Para los campos numéricos (prepMinutes, cookMinutes, calories, proteins, fats, carbs, quantity) usa SIEMPRE un número, nunca null ni cadena vacía. Si la receta no requiere cocción, cookMinutes = 0. Si no requiere preparación, prepMinutes = 0.
 12. Si no es posible generar una receta razonable con las restricciones, devuelve un objeto en "recipes" con error: { code: "NOT_FEASIBLE", message: "..." } — NO inventes recetas no cocinables.`;
 
+/**
+ * Strip characters that could break out of the JSON context or inject
+ * pseudo-instructions into the prompt: newlines, JSON delimiters, quote
+ * marks. Also caps length so a single ingredient can't blow up the
+ * token budget. Defense-in-depth on top of the Zod schema's max(60).
+ */
+function sanitizeIngredient(s: string): string {
+  return s
+    .replace(/[\n\r\t"{}\[\]<>]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 60)
+    .trim();
+}
+
+function sanitizeList(arr: string[] | undefined): string[] {
+  return (arr ?? [])
+    .map(sanitizeIngredient)
+    .filter((s) => s.length > 0);
+}
+
 export function buildUserPrompt(input: GenerateRecipesInput): string {
+  // Sanitize untrusted user input before it enters the prompt context.
+  // Untouched: enums (mealType, goal, dietaryProfile, difficulty) and
+  // numeric fields — Zod has already validated those.
+  const safeIngredients = sanitizeList(input.ingredients);
+  const safeForbidden = sanitizeList(input.forbidden);
+  const safeUnwanted = sanitizeList(input.unwanted);
+  const safeCuisine = input.cuisine
+    ? sanitizeIngredient(input.cuisine)
+    : undefined;
   const meal = getMeal(input.mealType);
   const goal = getGoal(input.goal);
   const dietary = getDietaryProfile(input.dietaryProfile);
@@ -133,11 +162,11 @@ Cuando un paso pueda ejecutarse en uno de estos aparatos, OFRECE explícitamente
 ${mealLine}
 ${goalLine}${dietaryBlock}${appliancesBlock}
 
-INGREDIENTES DISPONIBLES: ${JSON.stringify(input.ingredients)}
-INGREDIENTES PROHIBIDOS (alergias/intolerancias): ${JSON.stringify(input.forbidden ?? [])}
-INGREDIENTES NO DESEADOS: ${JSON.stringify(input.unwanted ?? [])}
+INGREDIENTES DISPONIBLES: ${JSON.stringify(safeIngredients)}
+INGREDIENTES PROHIBIDOS (alergias/intolerancias): ${JSON.stringify(safeForbidden)}
+INGREDIENTES NO DESEADOS: ${JSON.stringify(safeUnwanted)}
 COMENSALES: ${input.servings}
-COCINA (opcional): ${input.cuisine ?? "any"}
+COCINA (opcional): ${safeCuisine ?? "any"}
 DIFICULTAD (opcional): ${input.difficulty ?? "any"}
 
 Devuelve estrictamente este JSON:

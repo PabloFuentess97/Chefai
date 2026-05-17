@@ -39,6 +39,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "ioredis": "^5.10.1",
+    "isomorphic-dompurify": "^3.13.0",
     "jose": "^6.2.2",
     "lucide-react": "^1.11.0",
     "marked": "^18.0.3",

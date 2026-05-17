@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 import { z } from "zod";
 
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser, isEmailVerified } from "@/lib/auth";
 import { generateRecipesInput } from "@/lib/validators";
 import { generateRecipes, generateRecipeImage } from "@/lib/openai";
 import { enqueueImageJob, getQueue } from "@/lib/queue";
@@ -71,6 +71,12 @@ export async function generateRecipesAction(
   formData: FormData
 ): Promise<GenerateActionResult> {
   const user = await requireUser();
+  if (!isEmailVerified(user)) {
+    return fail(
+      "EMAIL_NOT_VERIFIED",
+      "Verifica tu email antes de generar recetas (revisa tu bandeja de entrada)."
+    );
+  }
 
   // Fall back to the user's saved dietary profile + appliances if the
   // wizard didn't override

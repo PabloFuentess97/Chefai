@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { MealPlanType } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser, isEmailVerified } from "@/lib/auth";
 import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { getUsage, incrementUsage, currentPeriodKey } from "@/lib/usage";
 import { rateLimit } from "@/lib/rate-limit";
@@ -89,6 +89,12 @@ export async function createMealPlanAction(
   formData: FormData
 ): Promise<CreatePlanResult> {
   const user = await requireUser();
+  if (!isEmailVerified(user)) {
+    return fail(
+      "EMAIL_NOT_VERIFIED",
+      "Verifica tu email antes de crear un menú (revisa tu bandeja de entrada)."
+    );
+  }
 
   // Fallback to the user's saved dietary profile when wizard doesn't override
   let dietaryFromForm = (formData.get("dietaryProfile") || "")

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { generateText } from "@/lib/ai/text";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUser, isEmailVerified } from "@/lib/auth";
 import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -33,6 +33,12 @@ export async function getSubstitutionsAction(
   ingredientName: string
 ): Promise<ActionResult<SubstitutionResult>> {
   const user = await requireUser();
+  if (!isEmailVerified(user)) {
+    return fail(
+      "EMAIL_NOT_VERIFIED",
+      "Verifica tu email antes de pedir sustituciones."
+    );
+  }
   if (!ingredientName?.trim()) {
     return fail("VALIDATION", "Falta el ingrediente");
   }

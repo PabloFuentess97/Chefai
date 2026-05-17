@@ -5,7 +5,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword, verifyPassword, isRehashNeeded } from "@/lib/password";
 import {
   signSession,
   setSessionCookie,
@@ -136,6 +136,21 @@ export async function loginAction(
   const ok = await verifyPassword(parsed.data.password, user.passwordHash);
   if (!ok) return fail("INVALID_CREDENTIALS", "Email o contraseña incorrectos");
 
+  // Transparent re-hash: if the stored hash was computed with an older cost
+  // factor, re-hash with the current one and persist. Best-effort — never
+  // block login on a failed re-hash.
+  if (isRehashNeeded(user.passwordHash)) {
+    try {
+      const newHash = await hashPassword(parsed.data.password);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      });
+    } catch (e) {
+      logger.warn({ err: e, userId: user.id }, "password rehash failed");
+    }
+  }
+
   const meta = await getRequestMeta();
   const { token, expiresAt } = await signSession(user.id, user.role, meta);
   await setSessionCookie(token, expiresAt);
@@ -161,6 +176,11 @@ export async function forgotPasswordAction(
   const rl = await rateLimit(`auth:forgot:${ip ?? "anon"}`, 10, 60);
   if (!rl.ok) return fail("RATE_LIMIT", "Demasiados intentos, espera un momento");
 
+  // Normalize response time to defeat timing-side-channel enumeration:
+  // whether or not the email exists, this action returns in ~800 ms.
+  const NORMALIZED_MS = 800;
+  const start = Date.now();
+
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.email },
   });
@@ -185,6 +205,11 @@ export async function forgotPasswordAction(
     } catch (e) {
       logger.error({ err: e }, "reset password email send failed");
     }
+  }
+
+  const elapsed = Date.now() - start;
+  if (elapsed < NORMALIZED_MS) {
+    await new Promise((r) => setTimeout(r, NORMALIZED_MS - elapsed));
   }
 
   return { ok: true, data: { sent: true } };

@@ -22,7 +22,11 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Introduce tu contraseña"),
+  // Reject trivially short passwords at the boundary to avoid wasting
+  // bcrypt cycles on bot brute-force traffic. Real users have ≥10 chars
+  // per the register schema, so 8 is a safe lower bound that still
+  // accepts any password that was actually accepted at signup time.
+  password: z.string().min(8, "Introduce tu contraseña"),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -287,10 +291,30 @@ export const upsertBlogCategorySchema = z.object({
   sortOrder: z.coerce.number().int().default(0),
 });
 
+// Defense-in-depth: strip HTML tags from text fields that will be
+// interpolated into email HTML. The renderer already escapes on output,
+// but stripping here also protects rendering paths we might add later
+// (e.g. plain-text fallbacks, preview cards, the admin UI itself).
+const stripHtml = (s: string | null | undefined) =>
+  (s ?? "").replace(/<\/?[^>]+>/g, "");
+
+const safeText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform(stripHtml);
+
 export const upsertEmailCampaignSchema = z.object({
   id: z.string().optional(),
-  name: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(500).optional().nullable(),
+  name: safeText(120).pipe(z.string().min(1)),
+  description: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? stripHtml(v) : v)),
   templateKey: z.string().trim().min(1).max(40),
   accentColor: z
     .union([
@@ -300,12 +324,42 @@ export const upsertEmailCampaignSchema = z.object({
     .optional()
     .nullable()
     .transform((v) => (v ? v : null)),
-  subject: z.string().trim().min(1, "Falta el asunto").max(180),
-  preheader: z.string().trim().max(180).optional().nullable(),
-  heroBadge: z.string().trim().max(60).optional().nullable(),
-  heroTitle: z.string().trim().max(160).optional().nullable(),
-  heroBody: z.string().trim().max(5000).optional().nullable(),
-  ctaLabel: z.string().trim().max(60).optional().nullable(),
+  subject: safeText(180).pipe(z.string().min(1, "Falta el asunto")),
+  preheader: z
+    .string()
+    .trim()
+    .max(180)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? stripHtml(v) : v)),
+  heroBadge: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? stripHtml(v) : v)),
+  heroTitle: z
+    .string()
+    .trim()
+    .max(160)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? stripHtml(v) : v)),
+  heroBody: z
+    .string()
+    .trim()
+    .max(5000)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? stripHtml(v) : v)),
+  ctaLabel: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? stripHtml(v) : v)),
   ctaUrl: z.string().trim().max(500).optional().nullable(),
   imageUrl: z.string().trim().max(500).optional().nullable(),
   audienceMode: z.enum([

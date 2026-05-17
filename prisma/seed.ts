@@ -95,9 +95,40 @@ async function main() {
   }
 
   // ---------- Admin user ----------
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@chefai.app";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "ChangeMeNow1234!";
-  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  // Refuse to create an admin with placeholder, weak, or missing credentials.
+  // Production deploys MUST provide real values, otherwise every install
+  // would ship with a known-credential admin account.
+  const PLACEHOLDER_PASSWORDS = new Set([
+    "ChangeMeNow1234!",
+    "replace-with-a-strong-password-min-16-chars",
+    "changeme",
+    "password",
+    "admin",
+  ]);
+
+  if (
+    !adminEmail ||
+    !adminPassword ||
+    adminPassword.length < 16 ||
+    PLACEHOLDER_PASSWORDS.has(adminPassword) ||
+    adminEmail === "admin@example.com" ||
+    adminEmail === "admin@chefai.app"
+  ) {
+    console.warn(
+      "\n⚠️  Skipping admin seed — ADMIN_EMAIL/ADMIN_PASSWORD missing or " +
+        "still set to a placeholder/weak value. Set them to real values " +
+        "in .env (password ≥16 chars, non-default) and re-run `pnpm db:seed`.\n"
+    );
+    console.log("Seed completed (no admin):");
+    console.log(`  - Settings (singleton)`);
+    console.log(`  - Plans: ${plans.map((p) => p.slug).join(", ")}`);
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(adminPassword, 14);
 
   await prisma.user.upsert({
     where: { email: adminEmail },
