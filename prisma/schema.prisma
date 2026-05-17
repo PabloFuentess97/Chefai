@@ -512,3 +512,65 @@ model EmailDelivery {
   @@index([resendId])
   @@index([status])
 }
+
+// ---------- BLOG ----------
+//
+// SEO-oriented public blog. Posts are authored from the admin using the
+// AI text + image providers (same as recipe generation). Once published
+// they live at /blog/[slug] and feed sitemap.xml + JSON-LD.
+
+enum BlogPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+model BlogCategory {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String?
+  color       String?    // HEX accent for the category
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  posts       BlogPost[]
+
+  @@index([slug])
+}
+
+model BlogPost {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  title           String
+  subtitle        String?
+  excerpt         String?         // 1-2 sentence summary used in cards + meta description fallback
+  content         String          @db.Text // Markdown body
+  heroImageUrl    String?
+  heroImagePrompt String?         // English prompt fed to the image AI (kept so we can regenerate)
+  authorName      String?         // display name shown on the post (defaults to brand name)
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  focusKeyword    String?         // primary keyword the post targets
+  ogImageUrl      String?         // optional dedicated OG image
+  // Lifecycle
+  status          BlogPostStatus  @default(DRAFT)
+  publishedAt     DateTime?
+  scheduledFor    DateTime?
+  // Categorization
+  categoryId      String?
+  tags            String[]        @default([])
+  // Analytics
+  viewCount       Int             @default(0)
+  // Bookkeeping
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+  @@index([status, publishedAt])
+  @@index([categoryId])
+}

@@ -201,6 +201,76 @@ export const signupWithCampaignSchema = registerSchema.extend({
 
 // ---------- Email campaigns ----------
 
+// ---------- Blog ----------
+
+export const generateBlogPostInput = z.object({
+  topic: z
+    .string()
+    .trim()
+    .min(8, "Describe el tema con un poco más de detalle")
+    .max(200),
+  focusKeyword: z.string().trim().min(2).max(80).optional().nullable(),
+  postType: z
+    .enum(["listicle", "guide", "comparison", "recipe-roundup", "explainer"])
+    .default("listicle"),
+  targetAudience: z.string().trim().max(120).optional().nullable(),
+  categorySlug: z.string().trim().max(40).optional().nullable(),
+  generateImage: z.coerce.boolean().default(true),
+});
+
+export const upsertBlogPostSchema = z.object({
+  id: z.string().optional(),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2)
+    .max(120)
+    .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones"),
+  title: z.string().trim().min(3).max(200),
+  subtitle: z.string().trim().max(300).optional().nullable(),
+  excerpt: z.string().trim().max(500).optional().nullable(),
+  content: z.string().trim().min(50, "El contenido es demasiado corto"),
+  heroImageUrl: z.string().trim().max(500).optional().nullable(),
+  authorName: z.string().trim().max(80).optional().nullable(),
+  metaTitle: z.string().trim().max(70).optional().nullable(),
+  metaDescription: z.string().trim().max(170).optional().nullable(),
+  focusKeyword: z.string().trim().max(80).optional().nullable(),
+  ogImageUrl: z.string().trim().max(500).optional().nullable(),
+  status: z.enum(["DRAFT", "SCHEDULED", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
+  scheduledFor: z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((v) => {
+      if (!v) return null;
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    }),
+  categoryId: z.string().trim().optional().nullable(),
+  tags: z.array(z.string().trim().min(1).max(30)).max(20).default([]),
+});
+
+export const upsertBlogCategorySchema = z.object({
+  id: z.string().optional(),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones"),
+  name: z.string().trim().min(1).max(60),
+  description: z.string().trim().max(300).optional().nullable(),
+  color: z
+    .union([
+      z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color HEX inválido"),
+      z.literal(""),
+    ])
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null)),
+  sortOrder: z.coerce.number().int().default(0),
+});
+
 export const upsertEmailCampaignSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1).max(120),
