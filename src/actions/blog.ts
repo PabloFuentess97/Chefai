@@ -14,6 +14,10 @@ import {
   upsertBlogCategorySchema,
 } from "@/lib/validators";
 import { generateBlogPostAi, type BlogPostAiOutput } from "@/lib/blog-ai";
+import {
+  processInlineImages,
+  countInlineMarkers,
+} from "@/lib/blog-inline-images";
 import { generateImageBase64 } from "@/lib/ai/image";
 import { IMAGE_PROMPT_PREFIX } from "@/lib/prompts";
 import { getBranding } from "@/lib/branding";
@@ -88,15 +92,17 @@ export async function generateBlogDraftAction(
     categoryId = cat?.id ?? null;
   }
 
-  // Generate hero image (best-effort, non-blocking)
+  // Generate hero image AND inline images in parallel
   let heroImageUrl: string | null = null;
-  if (parsed.data.generateImage) {
+  let processedContent = ai.content;
+
+  const generateHero = async () => {
+    if (!parsed.data.generateImage) return null;
     try {
       const r = await generateImageBase64({
         prompt: `${IMAGE_PROMPT_PREFIX} ${ai.heroImagePrompt}`,
         quality: "standard",
       });
-      // Save under /uploads/blog/<random>.png
       const dir = path.resolve(process.cwd(), env.UPLOADS_DIR, "blog");
       await fs.mkdir(dir, { recursive: true });
       const filename = `${crypto.randomBytes(10).toString("hex")}.png`;
@@ -104,11 +110,35 @@ export async function generateBlogDraftAction(
         path.join(dir, filename),
         Buffer.from(r.b64, "base64")
       );
-      heroImageUrl = `/uploads/blog/${filename}`;
+      return `/uploads/blog/${filename}`;
     } catch (e) {
       logger.warn({ err: e }, "blog hero image generation failed");
+      return null;
     }
-  }
+  };
+
+  const generateInline = async () => {
+    if (!parsed.data.generateImage) return ai.content;
+    const inlineCount = countInlineMarkers(ai.content);
+    if (inlineCount === 0) return ai.content;
+    logger.info({ inlineCount }, "blog: generating inline images");
+    const { content, generated, failed } = await processInlineImages(
+      ai.content,
+      { concurrency: 3, quality: "standard" }
+    );
+    logger.info(
+      { inlineCount, generated, failed },
+      "blog: inline images done"
+    );
+    return content;
+  };
+
+  const [heroResult, contentResult] = await Promise.all([
+    generateHero(),
+    generateInline(),
+  ]);
+  heroImageUrl = heroResult;
+  processedContent = contentResult;
 
   const created = await prisma.blogPost.create({
     data: {
@@ -116,7 +146,7 @@ export async function generateBlogDraftAction(
       title: ai.title,
       subtitle: ai.subtitle ?? null,
       excerpt: ai.excerpt,
-      content: ai.content,
+      content: processedContent,
       heroImageUrl,
       heroImagePrompt: ai.heroImagePrompt,
       authorName: branding.name,
@@ -253,6 +283,52 @@ export async function regenerateBlogImageAction(
   } catch (e) {
     logger.error({ err: e }, "regenerate image failed");
     return fail("AI_ERROR", "No se pudo generar la imagen");
+  }
+}
+
+/**
+ * Find every [IMAGE: ...] marker in the post's current content, generate the
+ * images and replace markers with ![alt](url). Use it when the admin manually
+ * added markers in the editor, or to re-run after a previous failure.
+ */
+export async function regenerateInlineImagesAction(
+  postId: string
+): Promise<
+  ActionResult<{ generated: number; failed: number; pending: number }>
+> {
+  await requireAdmin();
+  const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+  if (!post) return fail("NOT_FOUND", "Post no encontrado");
+
+  const before = countInlineMarkers(post.content);
+  if (before === 0)
+    return fail(
+      "NO_MARKERS",
+      "El post no tiene marcadores [IMAGE: …]. Añade alguno en el editor o regenera el post."
+    );
+
+  try {
+    const { content, generated, failed } = await processInlineImages(
+      post.content,
+      { concurrency: 3, quality: "standard" }
+    );
+    await prisma.blogPost.update({
+      where: { id: post.id },
+      data: { content },
+    });
+    revalidatePath(`/admin/blog/${post.id}`);
+    revalidatePath(`/blog/${post.slug}`);
+    return {
+      ok: true,
+      data: {
+        generated,
+        failed,
+        pending: countInlineMarkers(content),
+      },
+    };
+  } catch (e) {
+    logger.error({ err: e, postId }, "regenerate inline images failed");
+    return fail("AI_ERROR", "No se pudieron generar las imágenes inline");
   }
 }
 

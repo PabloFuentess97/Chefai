@@ -371,39 +371,180 @@ export default async function BlogPostPage({ params }: Props) {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .prose-blog { font-size: 17px; line-height: 1.75; color: #1c1917; }
-            .prose-blog p { margin: 0 0 18px; }
-            .prose-blog h2 { font-size: 28px; line-height: 1.2; font-weight: 700; margin: 40px 0 14px; letter-spacing: -0.4px; }
-            .prose-blog h3 { font-size: 21px; line-height: 1.25; font-weight: 700; margin: 30px 0 10px; letter-spacing: -0.2px; }
-            .prose-blog h4 { font-size: 17px; font-weight: 700; margin: 22px 0 8px; }
-            .prose-blog ul, .prose-blog ol { margin: 0 0 22px 24px; padding: 0; }
-            .prose-blog li { margin: 6px 0; }
-            .prose-blog strong { font-weight: 700; }
-            .prose-blog a { color: var(--primary, #16a34a); text-decoration: underline; text-underline-offset: 3px; }
+            /* Base typography — always dark text on white page (public blog
+               is intentionally light-themed so SEO previews look right) */
+            .prose-blog {
+              font-size: 17px;
+              line-height: 1.75;
+              color: #1c1917;
+            }
+            .prose-blog p {
+              margin: 0 0 20px;
+              color: #1c1917;
+            }
+            .prose-blog h2 {
+              font-size: 32px;
+              line-height: 1.15;
+              font-weight: 800;
+              margin: 56px 0 18px;
+              letter-spacing: -0.6px;
+              color: #0c0a09;
+              position: relative;
+              padding-bottom: 12px;
+            }
+            .prose-blog h2::after {
+              content: "";
+              position: absolute;
+              left: 0;
+              bottom: 0;
+              width: 48px;
+              height: 3px;
+              background: #16a34a;
+              border-radius: 2px;
+            }
+            .prose-blog h3 {
+              font-size: 24px;
+              line-height: 1.2;
+              font-weight: 700;
+              margin: 38px 0 12px;
+              letter-spacing: -0.3px;
+              color: #0c0a09;
+            }
+            .prose-blog h4 {
+              font-size: 18px;
+              font-weight: 700;
+              margin: 26px 0 8px;
+              color: #0c0a09;
+            }
+
+            /* Lists — give the bullet a brand color circle */
+            .prose-blog ul {
+              margin: 0 0 24px 0;
+              padding: 0;
+              list-style: none;
+            }
+            .prose-blog ul li {
+              position: relative;
+              padding-left: 24px;
+              margin: 8px 0;
+            }
+            .prose-blog ul li::before {
+              content: "";
+              position: absolute;
+              left: 4px;
+              top: 12px;
+              width: 6px;
+              height: 6px;
+              border-radius: 999px;
+              background: #16a34a;
+            }
+
+            /* Numbered lists — big brand circles for step-by-step style */
+            .prose-blog ol {
+              margin: 0 0 28px 0;
+              padding: 0;
+              list-style: none;
+              counter-reset: step;
+            }
+            .prose-blog ol li {
+              position: relative;
+              padding-left: 44px;
+              margin: 14px 0;
+              counter-increment: step;
+              min-height: 32px;
+            }
+            .prose-blog ol li::before {
+              content: counter(step);
+              position: absolute;
+              left: 0;
+              top: 2px;
+              width: 30px;
+              height: 30px;
+              border-radius: 999px;
+              background: #16a34a;
+              color: white;
+              font-weight: 700;
+              font-size: 14px;
+              display: grid;
+              place-items: center;
+              line-height: 1;
+            }
+
+            .prose-blog strong { font-weight: 700; color: #0c0a09; }
+            .prose-blog em { font-style: italic; }
+
+            .prose-blog a {
+              color: #16a34a;
+              text-decoration: underline;
+              text-underline-offset: 3px;
+              text-decoration-thickness: 1.5px;
+              transition: color 0.15s ease;
+            }
+            .prose-blog a:hover { color: #0f7a37; }
+
             .prose-blog blockquote {
-              margin: 22px 0;
-              padding: 14px 20px;
-              border-left: 4px solid var(--primary, #16a34a);
+              margin: 28px 0;
+              padding: 16px 22px;
+              border-left: 4px solid #16a34a;
               background: #f0fdf4;
-              border-radius: 0 12px 12px 0;
+              border-radius: 0 14px 14px 0;
               font-style: italic;
               color: #166534;
             }
+            .prose-blog blockquote p { margin: 0; color: inherit; }
+
             .prose-blog code {
               background: #f5f5f4;
-              padding: 1px 6px;
-              border-radius: 4px;
+              padding: 2px 7px;
+              border-radius: 5px;
               font-size: 0.9em;
               color: #be185d;
-              font-family: ui-monospace, "SF Mono", "Menlo", monospace;
+              font-family: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
             }
-            .prose-blog hr { border: 0; border-top: 1px solid #e7e5e4; margin: 36px 0; }
-            .prose-blog img { max-width: 100%; height: auto; border-radius: 12px; margin: 22px 0; }
-            @media (prefers-color-scheme: dark) {
-              .prose-blog { color: #f5f5f4; }
-              .prose-blog blockquote { background: rgba(22,163,74,0.1); color: #86efac; }
-              .prose-blog code { background: #262626; color: #f0abfc; }
-              .prose-blog hr { border-color: #404040; }
+
+            .prose-blog hr {
+              border: 0;
+              border-top: 1px solid #e7e5e4;
+              margin: 44px 0;
+            }
+
+            /* IMAGES — the big visual upgrade */
+            .prose-blog img {
+              display: block;
+              width: 100%;
+              max-width: 100%;
+              height: auto;
+              margin: 28px auto;
+              border-radius: 18px;
+              border: 1px solid rgba(0,0,0,0.04);
+              box-shadow: 0 18px 50px -16px rgba(0,0,0,0.18),
+                          0 4px 12px -2px rgba(0,0,0,0.05);
+              aspect-ratio: 4 / 3;
+              object-fit: cover;
+              background: #f5f5f4;
+            }
+
+            /* When an image follows a recipe heading, tighten the gap */
+            .prose-blog h3 + p > img,
+            .prose-blog h3 + img {
+              margin-top: 14px;
+            }
+
+            /* Recipe info pills ("**Tiempo:** XX min · **Dificultad:** Fácil") */
+            .prose-blog p strong:first-child + br + strong,
+            .prose-blog p > strong {
+              display: inline;
+            }
+
+            /* "Cómo hacerlo" sub-headings (h4) act as step labels */
+            .prose-blog h4 {
+              color: #16a34a;
+              font-size: 13px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
+              margin-top: 24px;
+              margin-bottom: 10px;
             }
           `,
         }}

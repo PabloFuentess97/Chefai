@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2, Save, ImagePlus } from "lucide-react";
+import { Trash2, Save, ImagePlus, Images } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
   upsertBlogPostAction,
   deleteBlogPostAction,
   regenerateBlogImageAction,
+  regenerateInlineImagesAction,
 } from "@/actions/blog";
 
 type Category = { id: string; name: string; slug: string };
@@ -88,6 +89,7 @@ export function BlogPostForm({
   const [pending, start] = React.useTransition();
   const [deleting, startDelete] = React.useTransition();
   const [regenerating, startRegen] = React.useTransition();
+  const [regenInline, startRegenInline] = React.useTransition();
   const [s, setS] = React.useState<State>(() => defaultState(post));
 
   function update<K extends keyof State>(k: K, v: State[K]) {
@@ -131,6 +133,26 @@ export function BlogPostForm({
       toast.success("Imagen regenerada");
     });
   }
+
+  function onRegenerateInline() {
+    startRegenInline(async () => {
+      const res = await regenerateInlineImagesAction(post.id);
+      if (!res.ok) {
+        toast.error(res.error.message);
+        return;
+      }
+      toast.success(
+        `${res.data.generated} imágenes generadas${
+          res.data.failed > 0 ? ` · ${res.data.failed} fallaron` : ""
+        }`
+      );
+      router.refresh();
+    });
+  }
+
+  // Detect [IMAGE: …] markers in the current content for the UI hint
+  const inlineMarkerCount = (s.content.match(/^\s*\[IMAGE:\s*[^\]]+\]\s*$/gm) || [])
+    .length;
 
   const metaTitleLen = s.metaTitle.length;
   const metaDescLen = s.metaDescription.length;
@@ -355,7 +377,37 @@ export function BlogPostForm({
           <strong>negritas</strong>, listas con <code>-</code> o{" "}
           <code>1.</code>, enlaces, citas. El H1 lo pone automáticamente la
           página con el título.
+          {" · "}Inserta imágenes inline con{" "}
+          <code>[IMAGE: english prompt]</code> en su propia línea.
         </p>
+        {inlineMarkerCount > 0 && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 flex items-center gap-3 flex-wrap">
+            <Images className="size-5 text-amber-600 shrink-0" />
+            <div className="flex-1 min-w-[180px] text-sm">
+              <p className="font-semibold">
+                {inlineMarkerCount}{" "}
+                {inlineMarkerCount === 1
+                  ? "marcador pendiente"
+                  : "marcadores pendientes"}{" "}
+                de generar
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Pulsa para que la IA genere cada imagen y las sustituya
+                automáticamente en el cuerpo.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRegenerateInline}
+              disabled={regenInline}
+            >
+              <Images className="size-4" />
+              {regenInline ? "Generando…" : "Generar imágenes inline"}
+            </Button>
+          </div>
+        )}
       </fieldset>
 
       {/* SEO */}
