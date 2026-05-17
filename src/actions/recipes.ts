@@ -72,16 +72,22 @@ export async function generateRecipesAction(
 ): Promise<GenerateActionResult> {
   const user = await requireUser();
 
-  // Fall back to the user's saved dietary profile if the wizard didn't override
+  // Fall back to the user's saved dietary profile + appliances if the
+  // wizard didn't override
   let dietaryFromForm = (formData.get("dietaryProfile") || "")
     .toString()
     .trim();
-  if (!dietaryFromForm) {
+  let appliancesFromForm = parseList(formData.get("appliances"));
+  if (!dietaryFromForm || appliancesFromForm.length === 0) {
     const u = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { dietaryProfile: true },
+      select: { dietaryProfile: true, cookingAppliances: true },
     });
-    if (u?.dietaryProfile) dietaryFromForm = u.dietaryProfile;
+    if (!dietaryFromForm && u?.dietaryProfile)
+      dietaryFromForm = u.dietaryProfile;
+    if (appliancesFromForm.length === 0 && u?.cookingAppliances?.length) {
+      appliancesFromForm = u.cookingAppliances;
+    }
   }
 
   // Form data uses comma-separated arrays for chips
@@ -95,6 +101,7 @@ export async function generateRecipesAction(
     mealType: formData.get("mealType") || undefined,
     goal: formData.get("goal") || undefined,
     dietaryProfile: dietaryFromForm || undefined,
+    appliances: appliancesFromForm,
   });
   if (!parsed.success) return fromZod(parsed.error);
 

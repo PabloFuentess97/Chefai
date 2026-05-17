@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlannerWizard } from "@/components/dashboard/planner-wizard";
 import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import type { DietGoal, DietaryProfile } from "@/lib/diet-goals";
+import type { ApplianceId } from "@/lib/appliances";
 
 export const metadata = { title: "Crear menú" };
 
@@ -18,7 +19,11 @@ export default async function NewPlanPage() {
   }
   const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { preferredGoal: true, dietaryProfile: true },
+    select: {
+      preferredGoal: true,
+      dietaryProfile: true,
+      cookingAppliances: true,
+    },
   });
 
   return (
@@ -46,6 +51,9 @@ export default async function NewPlanPage() {
             defaultGoal={(user?.preferredGoal as DietGoal | null) ?? null}
             defaultDietary={
               (user?.dietaryProfile as DietaryProfile | null) ?? null
+            }
+            defaultAppliances={
+              (user?.cookingAppliances as ApplianceId[] | undefined) ?? []
             }
             allowWeekly={planHasFeature(plan, "weeklyPlanner")}
           />

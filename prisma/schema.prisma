@@ -29,6 +29,7 @@ model User {
   resetTokenExp   DateTime?
   preferredGoal   String?         // diet goal default: deficit | maintain | volume | definition | muscle
   dietaryProfile  String?         // dietary profile: omnivore | vegetarian | vegan | pescatarian | keto | lowcarb | glutenfree | lactosefree | paleo | mediterranean
+  cookingAppliances String[]      @default([])  // ids from lib/appliances.ts (air-fryer, thermomix, …)
   // ----- Campaign / trial -----
   campaignId      String?
   trialStartedAt  DateTime?

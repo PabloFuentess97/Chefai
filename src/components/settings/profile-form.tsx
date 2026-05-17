@@ -27,6 +27,7 @@ import {
   DIETARY_PROFILES,
   type DietaryProfile,
 } from "@/lib/diet-goals";
+import { APPLIANCES, type ApplianceId } from "@/lib/appliances";
 import { cn } from "@/lib/utils";
 import { updateProfileAction } from "@/actions/settings";
 
@@ -56,21 +57,32 @@ export function ProfileForm({
   email,
   defaultGoal,
   defaultDietary,
+  defaultAppliances,
 }: {
   defaultName: string | null;
   email: string;
   defaultGoal: DietGoal | null;
   defaultDietary: DietaryProfile | null;
+  defaultAppliances: ApplianceId[];
 }) {
   const [pending, start] = React.useTransition();
   const [goal, setGoal] = React.useState<DietGoal | null>(defaultGoal);
   const [dietary, setDietary] = React.useState<DietaryProfile | null>(
     defaultDietary
   );
+  const [appliances, setAppliances] =
+    React.useState<ApplianceId[]>(defaultAppliances);
+
+  function toggleAppliance(id: ApplianceId) {
+    setAppliances((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
+    );
+  }
 
   function onSubmit(fd: FormData) {
     fd.set("preferredGoal", goal ?? "");
     fd.set("dietaryProfile", dietary ?? "");
+    fd.set("cookingAppliances", appliances.join(","));
     start(async () => {
       const res = await updateProfileAction(null, fd);
       if (!res.ok) {
@@ -160,6 +172,49 @@ export function ProfileForm({
             );
           })}
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <Label>Mis utensilios de cocina</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            La IA adaptará los pasos y tiempos al aparato que tengas. Elige
+            uno o varios.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {APPLIANCES.map((a) => {
+            const active = appliances.includes(a.id);
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => toggleAppliance(a.id)}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-all active:scale-[0.98]",
+                  active
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                    : "border-border hover:border-foreground/30"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg leading-none">{a.emoji}</span>
+                  <span className="font-medium text-sm">{a.short}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                  {a.desc}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        {appliances.length > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            {appliances.length}{" "}
+            {appliances.length === 1 ? "utensilio" : "utensilios"}{" "}
+            seleccionados — pulsa otra vez para desmarcar.
+          </p>
+        )}
       </div>
 
       <Button type="submit" disabled={pending}>

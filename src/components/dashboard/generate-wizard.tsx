@@ -46,6 +46,7 @@ import {
   type MealType,
   targetCaloriesForMeal,
 } from "@/lib/diet-goals";
+import { APPLIANCES, type ApplianceId } from "@/lib/appliances";
 import { cn } from "@/lib/utils";
 
 const MEAL_ICONS: Record<MealType, LucideIcon> = {
@@ -67,6 +68,7 @@ type State = {
   mealType: MealType | null;
   goal: DietGoal | null;
   dietary: DietaryProfile | null;
+  appliances: ApplianceId[];
   servings: number;
   ingredients: string[];
   forbidden: string[];
@@ -93,10 +95,12 @@ const STEPS = [
 export function GenerateWizard({
   defaultGoal = null,
   defaultDietary = null,
+  defaultAppliances = [],
   fridgePhotoEnabled = true,
 }: {
   defaultGoal?: DietGoal | null;
   defaultDietary?: DietaryProfile | null;
+  defaultAppliances?: ApplianceId[];
   fridgePhotoEnabled?: boolean;
 }) {
   const router = useRouter();
@@ -107,6 +111,7 @@ export function GenerateWizard({
     mealType: null,
     goal: defaultGoal,
     dietary: defaultDietary,
+    appliances: defaultAppliances,
     servings: 2,
     ingredients: [],
     forbidden: [],
@@ -152,6 +157,7 @@ export function GenerateWizard({
     if (s.mealType) fd.set("mealType", s.mealType);
     if (s.goal) fd.set("goal", s.goal);
     if (s.dietary) fd.set("dietaryProfile", s.dietary);
+    fd.set("appliances", s.appliances.join(","));
 
     startTransition(async () => {
       const res = await generateRecipesAction(null, fd);
@@ -551,6 +557,42 @@ function Step4({
         </p>
       </div>
 
+      <div className="space-y-2">
+        <Label>Utensilios de cocina</Label>
+        <p className="text-[11px] text-muted-foreground">
+          La IA adaptará los pasos a estos aparatos. Por defecto se usan
+          los de tu perfil; toca para añadir o quitar.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {APPLIANCES.map((a) => {
+            const active = state.appliances.includes(a.id);
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  const next = active
+                    ? state.appliances.filter((id) => id !== a.id)
+                    : [...state.appliances, a.id];
+                  update("appliances", next);
+                }}
+                className={cn(
+                  "rounded-xl border p-2.5 text-left transition-all active:scale-[0.98]",
+                  active
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                    : "border-border hover:border-foreground/30"
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base leading-none">{a.emoji}</span>
+                  <span className="font-medium text-xs">{a.short}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="rounded-2xl border bg-card p-5 space-y-3">
         <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
@@ -559,6 +601,16 @@ function Step4({
         <Row label="Tipo" value={meal?.label ?? "Cualquiera"} />
         <Row label="Objetivo" value={goal?.label ?? "Sin preferencia"} />
         <Row label="Dieta" value={dietary?.label ?? "Sin restricciones"} />
+        <Row
+          label="Utensilios"
+          value={
+            state.appliances.length === 0
+              ? "—"
+              : state.appliances
+                  .map((id) => APPLIANCES.find((a) => a.id === id)?.short ?? id)
+                  .join(", ")
+          }
+        />
         <Row label="Comensales" value={String(state.servings)} />
         <Row
           label="Ingredientes"

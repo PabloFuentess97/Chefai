@@ -46,6 +46,7 @@ const createPlanSchema = z.object({
     ])
     .nullable()
     .optional(),
+  appliances: z.array(z.string()).max(10).default([]),
 });
 
 function fail(code: string, message: string): ActionResult<never> {
@@ -93,12 +94,17 @@ export async function createMealPlanAction(
   let dietaryFromForm = (formData.get("dietaryProfile") || "")
     .toString()
     .trim();
-  if (!dietaryFromForm) {
+  let appliancesFromForm = parseList(formData.get("appliances"));
+  if (!dietaryFromForm || appliancesFromForm.length === 0) {
     const u = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { dietaryProfile: true },
+      select: { dietaryProfile: true, cookingAppliances: true },
     });
-    if (u?.dietaryProfile) dietaryFromForm = u.dietaryProfile;
+    if (!dietaryFromForm && u?.dietaryProfile)
+      dietaryFromForm = u.dietaryProfile;
+    if (appliancesFromForm.length === 0 && u?.cookingAppliances?.length) {
+      appliancesFromForm = u.cookingAppliances;
+    }
   }
 
   const parsed = createPlanSchema.safeParse({
@@ -112,6 +118,7 @@ export async function createMealPlanAction(
     preferences: parseList(formData.get("preferences")),
     forbidden: parseList(formData.get("forbidden")),
     dietaryProfile: dietaryFromForm || null,
+    appliances: appliancesFromForm,
   });
   if (!parsed.success) return fromZod(parsed.error);
 
@@ -202,6 +209,7 @@ export async function createMealPlanAction(
     preferences: data.preferences,
     forbidden: data.forbidden,
     dietaryProfile: data.dietaryProfile ?? null,
+    appliances: data.appliances,
     servings: data.servings,
     excludeRecipeIds: [...usedIds, ...recentRecipeIds],
     avoidTitles: recentTitles,

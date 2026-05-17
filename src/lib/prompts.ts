@@ -7,6 +7,7 @@ import {
   targetCaloriesForMeal,
   proteinMinForGoal,
 } from "./diet-goals";
+import { getAppliances } from "./appliances";
 
 // Number fields that the AI sometimes returns as null when the value is
 // "not applicable" (e.g. cookMinutes for a smoothie). Always end up as 0.
@@ -81,6 +82,7 @@ export const SYSTEM_PROMPT = `Eres un chef profesional con formación en nutrici
 
 Reglas estrictas (en orden de prioridad):
 0. Si el prompt indica un PERFIL DIETÉTICO (vegetariano, vegano, keto, sin gluten, etc.), TODAS las recetas DEBEN cumplir sus reglas y NO contener los ingredientes vetados por ese perfil. Esta restricción es de máxima prioridad junto con "forbidden".
+0b. Si el prompt indica UTENSILIOS del usuario (air fryer, Thermomix, olla lenta, etc.), adapta los pasos y tiempos a esos aparatos. Ofrece la versión con el aparato cuando aplique, indicando temperatura/velocidad/tiempo concretos del aparato.
 1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias/intolerancias). Esto es una cuestión de seguridad alimentaria.
 2. EVITA los ingredientes listados en "unwanted" salvo que sean absolutamente imprescindibles; en ese caso, usa una alternativa equivalente.
 3. Usa principalmente los ingredientes en "available". Puedes sugerir hasta 3 ingredientes adicionales por receta marcándolos como "suggested": true (sal, aceite, especias comunes no cuentan).
@@ -118,10 +120,18 @@ INGREDIENTES VETADOS POR ESTE PERFIL (añádelos mentalmente a "forbidden"): ${J
 Si alguno de los "INGREDIENTES DISPONIBLES" rompe el perfil, IGNÓRALO en lugar de usarlo.`
       : "";
 
+  const appliancesList = getAppliances(input.appliances ?? []);
+  const appliancesBlock =
+    appliancesList.length > 0
+      ? `\nUTENSILIOS DEL USUARIO (adapta los pasos cuando aplique):
+${appliancesList.map((a) => `- ${a.label}: ${a.instruction}`).join("\n")}
+Cuando un paso pueda ejecutarse en uno de estos aparatos, OFRECE explícitamente esa versión (no solo la del fogón/horno). Si una receta se beneficia mucho de un aparato concreto, monta los pasos directamente para ese aparato. No inventes pasos imposibles para un aparato que el usuario no tiene.`
+      : "";
+
   return `Genera recetas con estos parámetros:
 
 ${mealLine}
-${goalLine}${dietaryBlock}
+${goalLine}${dietaryBlock}${appliancesBlock}
 
 INGREDIENTES DISPONIBLES: ${JSON.stringify(input.ingredients)}
 INGREDIENTES PROHIBIDOS (alergias/intolerancias): ${JSON.stringify(input.forbidden ?? [])}

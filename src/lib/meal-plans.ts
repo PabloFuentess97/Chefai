@@ -22,6 +22,7 @@ import {
   targetCaloriesForMeal,
   proteinMinForGoal,
 } from "./diet-goals";
+import { getAppliances } from "./appliances";
 import { logger } from "./logger";
 
 // Map our internal codes to the Prisma MealSlot enum values
@@ -43,6 +44,7 @@ export type SlotInput = {
   preferences: string[]; // optional ingredient hints
   forbidden: string[];
   dietaryProfile: DietaryProfile | null;
+  appliances: string[]; // ApplianceId[]
   servings: number;
   excludeRecipeIds: string[];
   avoidTitles?: string[]; // recently used recipe titles to encourage variety
@@ -165,6 +167,13 @@ ${dietary.rules.map((r, i) => `  ${i + 1}. ${r}`).join("\n")}
 INGREDIENTES VETADOS POR EL PERFIL: ${JSON.stringify(dietary.banned)}`
       : "";
 
+  const appliancesList = getAppliances(input.appliances ?? []);
+  const appliancesBlock =
+    appliancesList.length > 0
+      ? `UTENSILIOS DEL USUARIO (adapta los pasos cuando aplique):
+${appliancesList.map((a) => `- ${a.label}: ${a.instruction}`).join("\n")}`
+      : "";
+
   const avoidLine =
     input.avoidTitles && input.avoidTitles.length > 0
       ? `AVOID_TITLES (recetas recientes que NO debes repetir ni imitar): ${JSON.stringify(input.avoidTitles.slice(0, 20))}`
@@ -177,6 +186,7 @@ ${goalLine}
 ${speedLine}
 ${cuisineLine}
 ${dietaryBlock}
+${appliancesBlock}
 ${avoidLine}
 DIFICULTAD: ${input.difficulty ?? "any"}
 COMENSALES: ${input.servings}

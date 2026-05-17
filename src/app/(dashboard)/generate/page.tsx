@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GenerateWizard } from "@/components/dashboard/generate-wizard";
 import { UsageMeter } from "@/components/dashboard/usage-meter";
 import type { DietGoal, DietaryProfile } from "@/lib/diet-goals";
+import type { ApplianceId } from "@/lib/appliances";
 
 export const metadata = { title: "Generar receta" };
 
@@ -18,7 +19,11 @@ export default async function GeneratePage() {
     getUsage(session.id),
     prisma.user.findUnique({
       where: { id: session.id },
-      select: { preferredGoal: true, dietaryProfile: true },
+      select: {
+        preferredGoal: true,
+        dietaryProfile: true,
+        cookingAppliances: true,
+      },
     }),
   ]);
 
@@ -62,6 +67,9 @@ export default async function GeneratePage() {
             defaultGoal={(user?.preferredGoal as DietGoal | null) ?? null}
             defaultDietary={
               (user?.dietaryProfile as DietaryProfile | null) ?? null
+            }
+            defaultAppliances={
+              (user?.cookingAppliances as ApplianceId[] | undefined) ?? []
             }
             fridgePhotoEnabled={planHasFeature(plan, "fridgePhoto")}
           />

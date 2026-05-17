@@ -8,6 +8,7 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
 import { LogoutButton } from "@/components/settings/logout-button";
 import type { DietGoal, DietaryProfile } from "@/lib/diet-goals";
+import type { ApplianceId } from "@/lib/appliances";
 
 export const metadata = { title: "Tu cuenta" };
 
@@ -21,6 +22,7 @@ export default async function SettingsPage() {
       role: true,
       preferredGoal: true,
       dietaryProfile: true,
+      cookingAppliances: true,
     },
   });
   if (!user) return null;
@@ -49,6 +51,9 @@ export default async function SettingsPage() {
             defaultGoal={(user.preferredGoal as DietGoal | null) ?? null}
             defaultDietary={
               (user.dietaryProfile as DietaryProfile | null) ?? null
+            }
+            defaultAppliances={
+              (user.cookingAppliances as ApplianceId[]) ?? []
             }
           />
         </CardContent>

@@ -42,6 +42,7 @@ import {
   type DietGoal,
   type DietaryProfile,
 } from "@/lib/diet-goals";
+import { APPLIANCES, type ApplianceId } from "@/lib/appliances";
 import { cn } from "@/lib/utils";
 import { createMealPlanAction } from "@/actions/planner";
 
@@ -58,6 +59,7 @@ type State = {
   startDate: string; // ISO YYYY-MM-DD
   goal: DietGoal | null;
   dietary: DietaryProfile | null;
+  appliances: ApplianceId[];
   difficulty: "easy" | "medium" | "hard" | "";
   fast: boolean;
   servings: number;
@@ -99,10 +101,12 @@ function nextMondayISO(): string {
 export function PlannerWizard({
   defaultGoal = null,
   defaultDietary = null,
+  defaultAppliances = [],
   allowWeekly = true,
 }: {
   defaultGoal?: DietGoal | null;
   defaultDietary?: DietaryProfile | null;
+  defaultAppliances?: ApplianceId[];
   allowWeekly?: boolean;
 }) {
   const router = useRouter();
@@ -114,6 +118,7 @@ export function PlannerWizard({
     startDate: allowWeekly ? nextMondayISO() : todayISO(),
     goal: defaultGoal,
     dietary: defaultDietary,
+    appliances: defaultAppliances,
     difficulty: "",
     fast: false,
     servings: 2,
@@ -151,6 +156,7 @@ export function PlannerWizard({
     fd.set("preferences", s.preferences.join(","));
     fd.set("forbidden", s.forbidden.join(","));
     if (s.dietary) fd.set("dietaryProfile", s.dietary);
+    fd.set("appliances", s.appliances.join(","));
 
     startTransition(async () => {
       const res = await createMealPlanAction(null, fd);
@@ -451,6 +457,42 @@ function Step3({
           Por defecto usamos el de tu perfil. Se aplicará a todos los platos
           del menú.
         </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Utensilios de cocina</Label>
+        <p className="text-[11px] text-muted-foreground">
+          La IA adaptará los pasos del menú a estos aparatos. Toca para
+          añadir o quitar.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {APPLIANCES.map((a) => {
+            const active = state.appliances.includes(a.id);
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  const next = active
+                    ? state.appliances.filter((id) => id !== a.id)
+                    : [...state.appliances, a.id];
+                  update("appliances", next);
+                }}
+                className={cn(
+                  "rounded-xl border p-2.5 text-left transition-all active:scale-[0.98]",
+                  active
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                    : "border-border hover:border-foreground/30"
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base leading-none">{a.emoji}</span>
+                  <span className="font-medium text-xs">{a.short}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-2">

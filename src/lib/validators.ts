@@ -46,6 +46,20 @@ export const changePasswordSchema = z
 
 // ---------- Recipes ----------
 
+export const applianceEnum = z.enum([
+  "air-fryer",
+  "thermomix",
+  "monsieur-cuisine",
+  "mambo",
+  "olla-rapida",
+  "olla-lenta",
+  "microondas",
+  "vaporera",
+  "wok",
+  "plancha",
+  "robot-generico",
+]);
+
 export const dietaryProfileEnum = z.enum([
   "omnivore",
   "vegetarian",
@@ -76,6 +90,7 @@ export const generateRecipesInput = z.object({
     .enum(["deficit", "maintain", "volume", "definition", "muscle"])
     .optional(),
   dietaryProfile: dietaryProfileEnum.optional(),
+  appliances: z.array(applianceEnum).max(10).default([]),
 });
 
 export type GenerateRecipesInput = z.infer<typeof generateRecipesInput>;
@@ -89,6 +104,7 @@ export const updateProfileSchema = z.object({
     .optional()
     .nullable(),
   dietaryProfile: dietaryProfileEnum.optional().nullable(),
+  cookingAppliances: z.array(applianceEnum).max(10).default([]),
 });
 
 // ---------- Admin ----------

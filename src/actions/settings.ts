@@ -32,10 +32,16 @@ export async function updateProfileAction(
   const user = await requireUser();
   const goalRaw = formData.get("preferredGoal");
   const dietaryRaw = formData.get("dietaryProfile");
+  const appliancesRaw = (formData.get("cookingAppliances") || "")
+    .toString()
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const parsed = updateProfileSchema.safeParse({
     name: formData.get("name"),
     preferredGoal: goalRaw && goalRaw !== "" ? goalRaw : null,
     dietaryProfile: dietaryRaw && dietaryRaw !== "" ? dietaryRaw : null,
+    cookingAppliances: appliancesRaw,
   });
   if (!parsed.success) return fromZod(parsed.error);
 
@@ -45,6 +51,7 @@ export async function updateProfileAction(
       name: parsed.data.name,
       preferredGoal: parsed.data.preferredGoal ?? null,
       dietaryProfile: parsed.data.dietaryProfile ?? null,
+      cookingAppliances: parsed.data.cookingAppliances,
     },
   });
   revalidatePath("/settings");
