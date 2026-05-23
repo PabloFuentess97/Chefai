@@ -91,7 +91,7 @@ Reglas estrictas (en orden de prioridad):
 6. Genera al menos 3 recetas DIFERENTES entre sí (técnicas o sabores distintos).
 7. Las instrucciones (steps) deben ser claras, en imperativo, numeradas implícitamente por orden, sin omitir pasos críticos (precalentar, salpimentar, reposar).
 8. Unidades métricas: g, ml, ud (unidad), cda (cucharada), cdta (cucharadita).
-9. Si se indica TIPO DE COMIDA, todas las recetas DEBEN ser apropiadas para ese momento del día. Por ejemplo, una "cena" no es un brownie, un "desayuno" no es solomillo.
+9. Si se indica TIPO DE COMIDA, todas las recetas DEBEN encajar inequívocamente. Una MERIENDA es siempre ligera (150-300 kcal, ≤10 min, snack); un DESAYUNO es tostadas/tortitas/huevos/yogures/smoothies, NUNCA estofados o pastas con salsa; una CENA es ligera; el ALMUERZO es el plato sustancial. Lee y respeta el bloque "REGLAS ESTRICTAS PARA …" del prompt del usuario — esas listas SÍ/NO son inviolables.
 10. Si se indica OBJETIVO NUTRICIONAL con un rango de calorías y un mínimo de proteína por ración, respétalos con prioridad alta. Ajusta CANTIDADES (no inventes ingredientes nuevos) para encajar el rango. Si imposible, prioriza la proteína mínima sobre el límite calórico superior.
 11. Para los campos numéricos (prepMinutes, cookMinutes, calories, proteins, fats, carbs, quantity) usa SIEMPRE un número, nunca null ni cadena vacía. Si la receta no requiere cocción, cookMinutes = 0. Si no requiere preparación, prepMinutes = 0.
 12. Si no es posible generar una receta razonable con las restricciones, devuelve un objeto en "recipes" con error: { code: "NOT_FEASIBLE", message: "..." } — NO inventes recetas no cocinables.`;
@@ -133,7 +133,9 @@ export function buildUserPrompt(input: GenerateRecipesInput): string {
   const proteinMin = proteinMinForGoal(input.goal);
 
   const mealLine = meal
-    ? `TIPO DE COMIDA: ${meal.label} (${meal.desc}). La receta DEBE ser específicamente apropiada para ${meal.label.toLowerCase()} en sabor, presentación y textura.`
+    ? `TIPO DE COMIDA: ${meal.label} (${meal.desc}).
+REGLAS ESTRICTAS PARA ${meal.label.toUpperCase()} (PRIORIDAD MÁXIMA):
+${meal.promptRules}`
     : `TIPO DE COMIDA: cualquiera`;
 
   const goalLine = goal

@@ -127,7 +127,7 @@ const SLOT_SYSTEM_PROMPT = `Eres un chef profesional con formación en nutrició
 Reglas estrictas (en orden de prioridad):
 0. Si el prompt indica un PERFIL DIETÉTICO (vegetariano, vegano, keto, sin gluten, etc.), TODAS las recetas DEBEN cumplir sus reglas y NO contener los ingredientes vetados. Esta restricción es de máxima prioridad junto con "forbidden".
 1. NUNCA uses ningún ingrediente listado en "forbidden" (alergias). Es seguridad alimentaria.
-2. La receta DEBE ser exactamente UNA, apropiada para el TIPO DE COMIDA indicado (en sabor, presentación y textura).
+2. La receta DEBE ser exactamente UNA y ENCAJAR INEQUÍVOCAMENTE en el TIPO DE COMIDA pedido. Si te piden DESAYUNO no inventes guisos, lasañas o platos de cuchara; si te piden MERIENDA, devuelve algo ligero, rápido, ~150-300 kcal, jamás un plato principal. Lee y respeta literalmente el bloque "REGLAS ESTRICTAS PARA …" que viene en el prompt del usuario.
 3. Si se indica OBJETIVO NUTRICIONAL con rango calórico y proteína mínima, respétalos. Ajusta cantidades para encajar.
 4. Si se indica COCINA específica (mexicana, india, italiana, asiática, americana, etc.), la receta DEBE ser AUTÉNTICA de esa tradición culinaria: usar ingredientes característicos, técnicas y perfiles de sabor propios de esa cocina. NO mezcles ni inventes platos fusión genéricos. Ejemplos:
    - india: especias como comino, cúrcuma, garam masala, jengibre, curry, lentejas, arroz basmati, paneer, ghee. Técnicas: tadka, dum cooking, tandoor.
@@ -179,9 +179,18 @@ ${appliancesList.map((a) => `- ${a.label}: ${a.instruction}`).join("\n")}`
       ? `AVOID_TITLES (recetas recientes que NO debes repetir ni imitar): ${JSON.stringify(input.avoidTitles.slice(0, 20))}`
       : "";
 
+  // Hard rules for the specific meal type (what IS and ISN'T a breakfast,
+  // snack, lunch, dinner). The model gets explicit allow/deny lists so it
+  // doesn't fall back to "generic recipe" for snack/breakfast slots.
+  const mealRulesBlock = meal
+    ? `REGLAS ESTRICTAS PARA ${meal.label.toUpperCase()} (PRIORIDAD MÁXIMA):
+${meal.promptRules}`
+    : "";
+
   return `Genera UNA receta con estos parámetros:
 
 TIPO DE COMIDA: ${meal?.label ?? "comida"}.
+${mealRulesBlock}
 ${goalLine}
 ${speedLine}
 ${cuisineLine}

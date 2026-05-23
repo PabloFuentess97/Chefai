@@ -14,6 +14,8 @@ export type MealMeta = {
   desc: string;
   baseCalMin: number;
   baseCalMax: number;
+  /** Hard rules sent to the AI prompt explaining what this meal IS. */
+  promptRules: string;
 };
 
 export type GoalMeta = {
@@ -32,6 +34,8 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     desc: "Para empezar el día con energía",
     baseCalMin: 300,
     baseCalMax: 450,
+    promptRules:
+      "DESAYUNO típico español/europeo. PERMITIDO: tostadas, tortitas, gachas/porridge de avena, granola, yogur con fruta, smoothies/batidos, fruta fresca, huevos (revueltos, en tortilla, pochados, benedict), pan integral con tomate y aceite, café/té, zumos, bocadillos pequeños, crepes, panqueques, muffins, pan con aguacate. PROHIBIDO ABSOLUTAMENTE: estofados, guisos, lasaña, pasta con salsa pesada, paella, arroz al horno, pollo entero, pescados a la plancha como plato principal, sopas calientes de comida, hamburguesas, costillas, carnes en salsa, platos de cuchara, postres como brownies o tartas. La sensación debe ser ligera, dulce o salada simple, y desayunable a primera hora.",
   },
   {
     id: "lunch",
@@ -39,6 +43,8 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     desc: "Comida principal, plato completo",
     baseCalMin: 450,
     baseCalMax: 650,
+    promptRules:
+      "ALMUERZO como comida principal del mediodía. Plato completo y saciante: arroces, pastas, legumbres, carnes/pescados a la plancha o al horno con guarnición, ensaladas grandes con proteína, bowls completos, guisos, currys, paellas, lasañas. Debe ser un plato sustancial, no un snack ni un picoteo.",
   },
   {
     id: "snack",
@@ -46,6 +52,8 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     desc: "Algo ligero entre comidas",
     baseCalMin: 150,
     baseCalMax: 300,
+    promptRules:
+      "MERIENDA: snack ligero a media tarde (~17-18h). PERMITIDO: fruta con yogur, frutos secos, hummus con palitos de verdura, tostada pequeña con queso, mini-bocadillos, smoothie/batido pequeño, barrita energética casera, palomitas, queso con membrillo, galletas integrales, gelatina, bizcocho de plátano (porción pequeña), tostadas con aguacate, dátiles con almendra, mini-tortitas. CARACTERÍSTICAS OBLIGATORIAS: 150-300 kcal totales, MUY rápido de preparar (≤10 min), comestible sin necesidad de cubiertos en algunos casos, NO requiere cocina compleja. PROHIBIDO ABSOLUTAMENTE: platos principales como pollo al horno, pescado a la plancha, guisos, pastas, arroces, lasañas, hamburguesas, ensaladas grandes, bowls de proteína, sopas de comida, paellas. Si parece una comida o cena, está MAL.",
   },
   {
     id: "dinner",
@@ -53,6 +61,8 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     desc: "Ligera, fácil de digerir",
     baseCalMin: 400,
     baseCalMax: 600,
+    promptRules:
+      "CENA ligera para final del día. PERMITIDO: pescados blancos a la plancha o al horno, tortillas, revueltos de huevo con verdura, cremas y sopas ligeras, ensaladas templadas con proteína magra, verduras al horno con queso, hamburguesas de pescado/pollo, sandwiches templados, wraps. EVITAR fritos pesados, salsas grasas excesivas, exceso de hidratos refinados, legumbres en grandes cantidades. Debe digerirse bien antes de dormir, ser razonablemente rápida (≤30-40 min) y saciante sin ser pesada.",
   },
 ] as const;
 
