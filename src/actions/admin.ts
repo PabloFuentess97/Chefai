@@ -396,3 +396,104 @@ export async function deleteCampaignAction(
   revalidatePath("/admin/campaigns");
   return { ok: true, data: { deleted: true } };
 }
+
+// ---------- Admin: manual email verification ----------
+//
+// Three actions for support cases when Resend bounces, is misconfigured,
+// or the user can't access the link in the email. All admin-only.
+
+export async function verifyUserEmailAction(
+  userId: string
+): Promise<ActionResult<{ verified: true; email: string }>> {
+  await requireAdmin();
+  if (!userId) return fail("VALIDATION", "Falta el ID");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, emailVerifiedAt: true },
+  });
+  if (!user) return fail("NOT_FOUND", "Usuario no encontrado");
+  if (user.emailVerifiedAt) {
+    return { ok: true, data: { verified: true, email: user.email } };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerifiedAt: new Date(), verifyToken: null },
+  });
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/users");
+  return { ok: true, data: { verified: true, email: user.email } };
+}
+
+export async function unverifyUserEmailAction(
+  userId: string
+): Promise<ActionResult<{ unverified: true }>> {
+  await requireAdmin();
+  if (!userId) return fail("VALIDATION", "Falta el ID");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, emailVerifiedAt: true },
+  });
+  if (!user) return fail("NOT_FOUND", "Usuario no encontrado");
+  if (!user.emailVerifiedAt) {
+    return { ok: true, data: { unverified: true } };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerifiedAt: null },
+  });
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/users");
+  return { ok: true, data: { unverified: true } };
+}
+
+export async function resendVerifyEmailAction(
+  userId: string
+): Promise<ActionResult<{ sent: true; email: string }>> {
+  await requireAdmin();
+  if (!userId) return fail("VALIDATION", "Falta el ID");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, emailVerifiedAt: true },
+  });
+  if (!user) return fail("NOT_FOUND", "Usuario no encontrado");
+  if (user.emailVerifiedAt) {
+    return fail(
+      "ALREADY_VERIFIED",
+      "Este usuario ya tiene el email verificado"
+    );
+  }
+
+  // Issue a fresh token so any older link in the user's inbox gets invalidated
+  const verifyToken = crypto.randomBytes(24).toString("hex");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { verifyToken },
+  });
+
+  try {
+    const { sendTransactional } = await import("@/lib/email");
+    const link = `${env.APP_URL}/verify-email?token=${verifyToken}`;
+    await sendTransactional({
+      to: user.email,
+      toUserId: user.id,
+      templateKey: "verify-email",
+      ctaUrlOverride: link,
+      vars: { name: user.name ?? "chef", link },
+    });
+  } catch (e) {
+    return fail(
+      "EMAIL_FAILED",
+      e instanceof Error
+        ? `No se pudo enviar el email: ${e.message}`
+        : "No se pudo enviar el email"
+    );
+  }
+
+  revalidatePath(`/admin/users/${userId}`);
+  return { ok: true, data: { sent: true, email: user.email } };
+}

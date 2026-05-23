@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserControls } from "@/components/admin/user-controls";
+import { UserEmailVerification } from "@/components/admin/user-email-verification";
 
 export const metadata = { title: "Admin · Usuario" };
 
@@ -94,6 +95,19 @@ export default async function AdminUserDetailPage({ params }: Props) {
         <Stat label="Recetas este mes" value={String(usage.recipesUsed)} />
         <Stat label="Pagos registrados" value={String(paymentsCount)} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Verificación de email</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <UserEmailVerification
+            userId={user.id}
+            email={user.email}
+            isVerified={Boolean(user.emailVerifiedAt)}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

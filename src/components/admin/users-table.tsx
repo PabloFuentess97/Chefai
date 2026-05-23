@@ -69,7 +69,12 @@ export function UsersTable({ users }: { users: Row[] }) {
               {u.emailVerifiedAt ? (
                 <span className="text-primary text-sm">Sí</span>
               ) : (
-                <span className="text-muted-foreground text-sm">No</span>
+                <span
+                  className="text-amber-600 dark:text-amber-400 text-sm font-medium"
+                  title="Este usuario no podrá generar recetas ni usar planner hasta verificar su email"
+                >
+                  Pendiente
+                </span>
               )}
             </TableCell>
             <TableCell className="hidden lg:table-cell text-sm">
