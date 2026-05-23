@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { requireUser, isEmailVerified } from "@/lib/auth";
-import { generateRecipesInput } from "@/lib/validators";
+import { generateRecipesInput, updateRecipeSchema } from "@/lib/validators";
 import { generateRecipes, generateRecipeImage } from "@/lib/openai";
 import { enqueueImageJob, getQueue } from "@/lib/queue";
 import {
@@ -292,6 +292,109 @@ export async function toggleFavoriteAction(
   revalidatePath("/recipes");
   revalidatePath(`/recipes/${recipeId}`);
   return { ok: true, data: { isFavorite: updated.isFavorite } };
+}
+
+/**
+ * Owner-only edit of a generated recipe. Replaces basic info + ingredients
+ * + steps in a single transaction so the view never sees a half-applied
+ * recipe. Macro totals are intentionally NOT recalculated — manual edits
+ * don't have nutrition info per ingredient, and trying to estimate
+ * would be misleading.
+ */
+export async function updateRecipeAction(
+  _prev: ActionResult<{ id: string }> | null,
+  formData: FormData
+): Promise<ActionResult<{ id: string }>> {
+  const user = await requireUser();
+
+  // Arrays come from the form as JSON strings (hidden inputs).
+  let ingredientsRaw: unknown = [];
+  let stepsRaw: unknown = [];
+  try {
+    const ingStr = formData.get("ingredients");
+    const stepStr = formData.get("steps");
+    ingredientsRaw =
+      typeof ingStr === "string" ? JSON.parse(ingStr) : [];
+    stepsRaw = typeof stepStr === "string" ? JSON.parse(stepStr) : [];
+  } catch {
+    return fail("VALIDATION", "Datos de ingredientes o pasos mal formados");
+  }
+
+  const parsed = updateRecipeSchema.safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    cuisine: formData.get("cuisine"),
+    difficulty: formData.get("difficulty"),
+    prepMinutes: formData.get("prepMinutes"),
+    cookMinutes: formData.get("cookMinutes"),
+    servings: formData.get("servings"),
+    ingredients: ingredientsRaw,
+    steps: stepsRaw,
+  });
+  if (!parsed.success) return fromZod(parsed.error);
+
+  const recipe = await prisma.recipe.findUnique({
+    where: { id: parsed.data.id },
+    select: { id: true, userId: true },
+  });
+  if (!recipe) return fail("NOT_FOUND", "Receta no encontrada");
+  if (recipe.userId !== user.id)
+    return fail("FORBIDDEN", "No puedes editar esta receta");
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.recipe.update({
+        where: { id: parsed.data.id },
+        data: {
+          title: parsed.data.title,
+          description: parsed.data.description ?? null,
+          cuisine: parsed.data.cuisine ?? null,
+          difficulty: parsed.data.difficulty ?? null,
+          prepMinutes: parsed.data.prepMinutes,
+          cookMinutes: parsed.data.cookMinutes,
+          servings: parsed.data.servings,
+        },
+      });
+      // Wipe + recreate ingredients and steps — simpler than diffing and
+      // safe because the cascade only touches related rows, and the
+      // transaction guarantees atomicity.
+      await tx.recipeIngredient.deleteMany({
+        where: { recipeId: parsed.data.id },
+      });
+      await tx.recipeIngredient.createMany({
+        data: parsed.data.ingredients.map((ing, idx) => ({
+          recipeId: parsed.data.id,
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          optional: ing.optional,
+          sortOrder: idx,
+        })),
+      });
+      await tx.recipeStep.deleteMany({
+        where: { recipeId: parsed.data.id },
+      });
+      await tx.recipeStep.createMany({
+        data: parsed.data.steps.map((s, idx) => ({
+          recipeId: parsed.data.id,
+          order: idx + 1,
+          content: s.content,
+          durationMin: s.durationMin ?? null,
+        })),
+      });
+    });
+  } catch (e) {
+    logger.error(
+      { err: e, recipeId: parsed.data.id, userId: user.id },
+      "updateRecipe failed"
+    );
+    return fail("DB_ERROR", "No se pudo guardar la receta");
+  }
+
+  revalidatePath(`/recipes/${parsed.data.id}`);
+  revalidatePath("/recipes");
+  return { ok: true, data: { id: parsed.data.id } };
 }
 
 export async function deleteRecipeAction(

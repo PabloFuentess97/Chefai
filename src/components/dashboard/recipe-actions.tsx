@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Trash2, FileDown, ShoppingBasket } from "lucide-react";
+import Link from "next/link";
+import { Heart, Trash2, FileDown, ShoppingBasket, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,16 @@ export function RecipeActions({
             className={fav ? "size-4 fill-pink-500 text-pink-500" : "size-4"}
           />
           {fav ? "Favorita" : "Marcar favorita"}
+        </Button>
+      )}
+
+      {isOwner && (
+        <Button
+          variant="outline"
+          render={<Link href={`/recipes/${recipeId}/edit`} />}
+        >
+          <Pencil className="size-4" />
+          Editar
         </Button>
       )}
 

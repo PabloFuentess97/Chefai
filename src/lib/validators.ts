@@ -99,6 +99,62 @@ export const generateRecipesInput = z.object({
 
 export type GenerateRecipesInput = z.infer<typeof generateRecipesInput>;
 
+// ---------- Manual recipe edit ----------
+//
+// Accepted by updateRecipeAction. Lets the owner edit basic info,
+// ingredients (full replace) and steps (full replace). Macro fields are
+// intentionally NOT in this schema — manual edits don't try to recalc
+// nutrition, that's only meaningful when the IA generates the recipe.
+
+export const recipeIngredientEditSchema = z.object({
+  name: z.string().trim().min(1, "Nombre obligatorio").max(80),
+  quantity: z.coerce.number().min(0).max(10000),
+  unit: z.string().trim().max(20),
+  optional: z.coerce.boolean().default(false),
+});
+
+export const recipeStepEditSchema = z.object({
+  content: z.string().trim().min(1, "El paso no puede estar vacío").max(2000),
+  durationMin: z
+    .union([z.coerce.number().int().min(0).max(600), z.null(), z.literal("")])
+    .transform((v) => (v === "" || v === null ? null : v))
+    .nullable()
+    .optional(),
+});
+
+export const updateRecipeSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(1, "El título es obligatorio").max(120),
+  description: z
+    .union([z.string().trim().max(500), z.null(), z.literal("")])
+    .transform((v) => (v ? v : null))
+    .nullable()
+    .optional(),
+  cuisine: z
+    .union([z.string().trim().max(40), z.null(), z.literal("")])
+    .transform((v) => (v ? v : null))
+    .nullable()
+    .optional(),
+  difficulty: z
+    .union([z.enum(["easy", "medium", "hard"]), z.null(), z.literal("")])
+    .transform((v) => (v === "" || v === null ? null : v))
+    .nullable()
+    .optional(),
+  prepMinutes: z.coerce.number().int().min(0).max(600),
+  cookMinutes: z.coerce.number().int().min(0).max(600),
+  servings: z.coerce.number().int().min(1).max(20),
+  ingredients: z
+    .array(recipeIngredientEditSchema)
+    .min(1, "Añade al menos un ingrediente")
+    .max(50, "Máximo 50 ingredientes"),
+  steps: z
+    .array(recipeStepEditSchema)
+    .min(1, "Añade al menos un paso")
+    .max(50, "Máximo 50 pasos"),
+});
+
+export type UpdateRecipeInput = z.infer<typeof updateRecipeSchema>;
+
 // ---------- Profile ----------
 
 export const updateProfileSchema = z.object({
