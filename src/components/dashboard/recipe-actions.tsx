@@ -20,11 +20,13 @@ import { addRecipeToShoppingListAction } from "@/actions/shopping";
 
 export function RecipeActions({
   recipeId,
+  recipeTitle,
   isFavorite,
   pdfEnabled,
   isOwner = true,
 }: {
   recipeId: string;
+  recipeTitle?: string;
   isFavorite: boolean;
   pdfEnabled: boolean;
   isOwner?: boolean;
@@ -137,26 +139,40 @@ export function RecipeActions({
             }
           />
           <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Eliminar esta receta?</DialogTitle>
-            <DialogDescription>
-              Esta acción no se puede deshacer. La imagen asociada también se
-              borrará.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={onDelete}
-              disabled={delPending}
-            >
-              {delPending ? "Eliminando…" : "Eliminar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Eliminar esta receta?</DialogTitle>
+              <DialogDescription className="space-y-2">
+                {recipeTitle && (
+                  <span className="block rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium text-foreground">
+                    {recipeTitle}
+                  </span>
+                )}
+                <span className="block">
+                  Esta acción no se puede deshacer. La imagen asociada
+                  también se borrará.
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setOpen(false)}
+                disabled={delPending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                size="lg"
+                onClick={onDelete}
+                disabled={delPending}
+              >
+                <Trash2 className="size-4" />
+                {delPending ? "Eliminando…" : "Sí, eliminar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
       </Dialog>
       )}
     </div>

@@ -31,7 +31,17 @@ export default async function DashboardHome() {
     }),
   ]);
 
-  const greeting = user.name ? `Hola, ${user.name}` : "Hola de nuevo";
+  // Friendly name resolution. Skip the literal "Admin" seed placeholder
+  // and the empty case — fall back to the email local-part with the first
+  // letter uppercased ("pablo@chefai.fit" -> "Pablo"). The user can always
+  // override their display name from /settings.
+  function displayName(name: string | null, email: string): string {
+    const trimmed = name?.trim();
+    if (trimmed && trimmed !== "Admin") return trimmed;
+    const local = email.split("@")[0] ?? "chef";
+    return local.charAt(0).toUpperCase() + local.slice(1);
+  }
+  const greeting = `Hola, ${displayName(user.name, user.email)}`;
 
   return (
     <div className="space-y-8">

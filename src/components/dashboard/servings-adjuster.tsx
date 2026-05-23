@@ -91,8 +91,25 @@ export function ServingsAdjuster({
           );
         })}
       </ul>
-      <p className="text-[10px] text-muted-foreground pt-1">
-        Pasa el ratón sobre un ingrediente para ver alternativas
+      <p className="text-[11px] text-muted-foreground pt-1.5 flex items-center gap-1.5">
+        <span className="inline-flex size-4 items-center justify-center rounded-sm bg-muted">
+          <svg
+            className="size-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M8 3 4 7l4 4" />
+            <path d="M4 7h16" />
+            <path d="m16 21 4-4-4-4" />
+            <path d="M20 17H4" />
+          </svg>
+        </span>
+        Toca el icono junto a cada ingrediente para ver alternativas con IA
       </p>
     </div>
   );

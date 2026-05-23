@@ -26,7 +26,10 @@ const TABS: Tab[] = [
   { href: "/admin/branding", label: "Branding", icon: Palette },
 ];
 
-function isActive(pathname: string, href: string) {
+function isActive(pathname: string | null, href: string): boolean {
+  // usePathname() can return null in edge hydration cases — fail-safe to
+  // "not active" rather than crash on pathname.startsWith().
+  if (!pathname) return false;
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(href + "/");
 }
@@ -49,9 +52,11 @@ export function AdminSubnav() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors",
+                  "inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-sm font-medium transition-all",
                   active
-                    ? "bg-primary text-primary-foreground"
+                    ? // Stronger active state: brand background, white text,
+                      // ring + shadow so it pops even on quick page loads
+                      "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30 ring-offset-1 ring-offset-background"
                     : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >

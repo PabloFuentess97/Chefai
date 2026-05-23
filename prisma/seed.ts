@@ -136,7 +136,10 @@ async function main() {
     create: {
       email: adminEmail,
       passwordHash,
-      name: "Admin",
+      // Don't bake "Admin" into the display name — the dashboard greeting
+      // will derive a friendlier fallback from the email local-part, and
+      // the user can override from /settings.
+      name: null,
       role: Role.ADMIN,
       emailVerifiedAt: new Date(),
     },

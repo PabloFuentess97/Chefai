@@ -115,6 +115,7 @@ export default async function RecipeDetailPage({ params }: Props) {
 
           <RecipeActions
             recipeId={recipe.id}
+            recipeTitle={recipe.title}
             isFavorite={recipe.isFavorite}
             pdfEnabled={pdfEnabled}
             isOwner={isOwner}

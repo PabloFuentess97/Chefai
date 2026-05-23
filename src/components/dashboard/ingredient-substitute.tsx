@@ -59,7 +59,10 @@ export function IngredientSubstitute({
           <button
             type="button"
             aria-label={`Sustituir ${ingredientName}`}
-            className="size-7 grid place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary transition opacity-0 group-hover:opacity-100 focus:opacity-100"
+            // Always visible at 60% opacity so it's discoverable on
+            // mobile/touch (no hover); fades to full opacity on
+            // hover/focus for desktop polish.
+            className="size-7 grid place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary focus:bg-muted focus:text-primary transition opacity-60 group-hover:opacity-100 focus:opacity-100"
           >
             <ArrowLeftRight className="size-3.5" />
           </button>
