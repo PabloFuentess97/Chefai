@@ -82,11 +82,13 @@ export function ShoppingList({ initialItems }: { initialItems: Item[] }) {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card p-12 text-center space-y-3">
+      <div className="rounded-2xl border bg-card p-10 text-center space-y-3">
         <ShoppingBasket className="size-10 mx-auto text-muted-foreground" />
         <h2 className="font-semibold">Lista vacía</h2>
-        <p className="text-sm text-muted-foreground">
-          Añade ingredientes desde una receta o desde un menú.
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          Añade ingredientes desde una receta, desde un menú, o pulsa
+          <strong className="text-foreground"> Añadir ítem manualmente </strong>
+          arriba para meter algo que ya sabes que necesitas.
         </p>
       </div>
     );

@@ -58,12 +58,16 @@ export function ProfileForm({
   defaultGoal,
   defaultDietary,
   defaultAppliances,
+  supportEmail,
+  brandName,
 }: {
   defaultName: string | null;
   email: string;
   defaultGoal: DietGoal | null;
   defaultDietary: DietaryProfile | null;
   defaultAppliances: ApplianceId[];
+  supportEmail: string;
+  brandName: string;
 }) {
   const [pending, start] = React.useTransition();
   const [goal, setGoal] = React.useState<DietGoal | null>(defaultGoal);
@@ -99,7 +103,21 @@ export function ProfileForm({
         <Label htmlFor="email">Email</Label>
         <Input id="email" type="email" value={email} disabled readOnly />
         <p className="text-xs text-muted-foreground">
-          El email no se puede cambiar todavía.
+          El email no se puede cambiar desde aquí.{" "}
+          <a
+            href={`mailto:${supportEmail}?subject=${encodeURIComponent(
+              `[${brandName}] Cambio de email`
+            )}&body=${encodeURIComponent(
+              `Hola,\n\nMe gustaría cambiar el email de mi cuenta.\n\n` +
+                `Email actual: ${email}\n` +
+                `Email nuevo: \n\n` +
+                `Gracias.`
+            )}`}
+            className="text-primary hover:underline"
+          >
+            Escríbenos a soporte
+          </a>{" "}
+          y te lo cambiamos.
         </p>
       </div>
 

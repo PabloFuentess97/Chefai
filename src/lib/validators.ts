@@ -155,6 +155,17 @@ export const updateRecipeSchema = z.object({
 
 export type UpdateRecipeInput = z.infer<typeof updateRecipeSchema>;
 
+// ---------- Shopping list (manual entry) ----------
+
+export const addManualShoppingItemSchema = z.object({
+  name: z.string().trim().min(1, "Nombre obligatorio").max(80),
+  quantity: z.coerce
+    .number()
+    .min(0, "La cantidad no puede ser negativa")
+    .max(10000),
+  unit: z.string().trim().min(1).max(20),
+});
+
 // ---------- Profile ----------
 
 export const updateProfileSchema = z.object({

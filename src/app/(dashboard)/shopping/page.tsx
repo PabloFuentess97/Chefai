@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentPlan, planHasFeature } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { ShoppingList } from "@/components/dashboard/shopping-list";
+import { AddShoppingItem } from "@/components/dashboard/add-shopping-item";
 
 export const metadata = { title: "Lista de la compra" };
 
@@ -60,6 +61,8 @@ export default async function ShoppingPage() {
           receta o menú.
         </p>
       </div>
+
+      <AddShoppingItem />
 
       <ShoppingList
         initialItems={items.map((i) => ({

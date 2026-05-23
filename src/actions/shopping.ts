@@ -195,3 +195,69 @@ export async function clearAllShoppingItemsAction(): Promise<
   revalidatePath("/shopping");
   return { ok: true, data: { deleted: result.count } };
 }
+
+/**
+ * Manually add a single item to the shopping list — for things the user
+ * knows they need ("pan de molde", "papel cocina") that don't come from
+ * any recipe. Deduplicates against existing unbought items the same way
+ * recipe ingredients do: if the same (name+unit) already exists, sum
+ * quantities rather than creating a duplicate row.
+ */
+export async function addManualShoppingItemAction(
+  _prev: ActionResult<{ id: string }> | null,
+  formData: FormData
+): Promise<ActionResult<{ id: string }>> {
+  const user = await requireUser();
+  const gate = await ensureShoppingEnabled(user.id);
+  if (gate) return gate;
+
+  const { addManualShoppingItemSchema } = await import("@/lib/validators");
+  const parsed = addManualShoppingItemSchema.safeParse({
+    name: formData.get("name"),
+    quantity: formData.get("quantity"),
+    unit: formData.get("unit"),
+  });
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return fail(
+      "VALIDATION",
+      first?.message ?? "Datos no válidos"
+    );
+  }
+
+  const { name, quantity, unit } = parsed.data;
+  const cleanName = name.trim();
+  const cleanUnit = unit.trim();
+
+  // Look for an existing unbought item with the same (name, unit) and
+  // sum quantities — same behavior as adding from a recipe.
+  const existing = await prisma.shoppingListItem.findFirst({
+    where: {
+      userId: user.id,
+      isBought: false,
+      name: { equals: cleanName, mode: "insensitive" },
+      unit: { equals: cleanUnit, mode: "insensitive" },
+    },
+  });
+
+  let row;
+  if (existing) {
+    row = await prisma.shoppingListItem.update({
+      where: { id: existing.id },
+      data: { quantity: existing.quantity + quantity },
+    });
+  } else {
+    row = await prisma.shoppingListItem.create({
+      data: {
+        userId: user.id,
+        name: cleanName,
+        quantity,
+        unit: cleanUnit,
+        isBought: false,
+      },
+    });
+  }
+
+  revalidatePath("/shopping");
+  return { ok: true, data: { id: row.id } };
+}

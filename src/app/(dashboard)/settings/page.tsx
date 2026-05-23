@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getBranding } from "@/lib/branding";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/settings/profile-form";
@@ -14,17 +15,20 @@ export const metadata = { title: "Tu cuenta" };
 
 export default async function SettingsPage() {
   const session = await requireUser();
-  const user = await prisma.user.findUnique({
-    where: { id: session.id },
-    select: {
-      name: true,
-      email: true,
-      role: true,
-      preferredGoal: true,
-      dietaryProfile: true,
-      cookingAppliances: true,
-    },
-  });
+  const [user, branding] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.id },
+      select: {
+        name: true,
+        email: true,
+        role: true,
+        preferredGoal: true,
+        dietaryProfile: true,
+        cookingAppliances: true,
+      },
+    }),
+    getBranding(),
+  ]);
   if (!user) return null;
 
   const isAdmin = user.role === "ADMIN";
@@ -55,6 +59,8 @@ export default async function SettingsPage() {
             defaultAppliances={
               (user.cookingAppliances as ApplianceId[]) ?? []
             }
+            supportEmail={branding.supportEmail}
+            brandName={branding.name}
           />
         </CardContent>
       </Card>
