@@ -44,6 +44,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./nod
 # Pre-create uploads dir so the volume mount has correct ownership
 RUN mkdir -p /app/public/uploads && chown -R nextjs:nodejs /app/public/uploads
 
+# Declare the uploads dir as a volume so Coolify / Docker auto-create a
+# persistent storage mount on first run. Without this, a redeploy would
+# wipe user-uploaded recipe photos and campaign images.
+VOLUME ["/app/public/uploads"]
+
 USER nextjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
