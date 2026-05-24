@@ -35,7 +35,7 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     baseCalMin: 300,
     baseCalMax: 450,
     promptRules:
-      "DESAYUNO típico español/europeo. PERMITIDO: tostadas, tortitas, gachas/porridge de avena, granola, yogur con fruta, smoothies/batidos, fruta fresca, huevos (revueltos, en tortilla, pochados, benedict), pan integral con tomate y aceite, café/té, zumos, bocadillos pequeños, crepes, panqueques, muffins, pan con aguacate. PROHIBIDO ABSOLUTAMENTE: estofados, guisos, lasaña, pasta con salsa pesada, paella, arroz al horno, pollo entero, pescados a la plancha como plato principal, sopas calientes de comida, hamburguesas, costillas, carnes en salsa, platos de cuchara, postres como brownies o tartas. La sensación debe ser ligera, dulce o salada simple, y desayunable a primera hora.",
+      "DESAYUNO ESPAÑOL/EUROPEO típico que un adulto comería a primera hora de la mañana. CONTEXTO CULTURAL OBLIGATORIO: salvo que el usuario haya pedido explícitamente cocina ASIÁTICA (en cuyo caso sí valen congee, miso, dim sum dulce), el desayuno DEBE encajar en la tradición mediterránea/europea/americana de desayuno. PERMITIDO: tostadas con tomate y aceite, tostadas con aguacate, tostadas con queso fresco, tortitas/pancakes con fruta, crepes dulces, gachas/porridge de avena CON LECHE Y FRUTA (NUNCA con tofu, soja salada, ni verduras), granola con yogur, yogur natural con fruta y miel, smoothie/batido de fruta con avena/proteína, huevos revueltos, huevos pochados, tortilla francesa con verdura ligera, huevos benedict, sandwich de pavo y queso, mini bocadillo de jamón, café con leche, té, zumos naturales, bizcocho casero, magdalena, muffin de plátano, croissant, fruta fresca con frutos secos, queso fresco con miel, requesón con mermelada, tortita de arroz con crema de cacahuete y plátano. PROHIBIDO ABSOLUTAMENTE: gachas saladas asiáticas tipo congee, arroz hervido con tofu, tofu salteado, salsa de soja, miso, ramen, pad thai, rollitos de primavera, dim sum salado, currys, estofados, guisos, lasañas, pasta con salsa pesada, paellas, pollo entero al horno, costillas BBQ, hamburguesas completas, lentejas, fabada, sopas de comida principal, platos de cuchara, bowls de comida tipo poke con arroz y tofu, ensaladas grandes con proteína. Si el plato suena a almuerzo, cena o comida exótica salada con tofu, está MAL. Cuando el usuario es vegetariano/vegano, usa proteínas vegetales SUAVES en contexto desayuno: yogur de soja, queso vegano, mantequilla de cacahuete, granola con frutos secos — NO tofu salado ni seitán.",
   },
   {
     id: "lunch",
@@ -187,6 +187,7 @@ export const DIETARY_PROFILES: readonly DietaryProfileMeta[] = [
     rules: [
       "NO uses carne (ternera, cerdo, pollo, cordero, conejo, embutidos) ni pescado/mariscos en ningún plato.",
       "Sí puedes usar huevos, lácteos, legumbres, cereales, frutos secos y proteínas vegetales (tofu, tempeh, seitán).",
+      "CONTEXTO DE COMIDA: respeta el momento del día. Para DESAYUNO prefiere yogur, huevos, queso fresco, frutos secos, granola, tostadas con aguacate o crema de cacahuete; evita tofu/seitán/tempeh salteados (más propios de almuerzo o cena). Para MERIENDA: yogur, fruta, frutos secos, hummus pequeño, queso fresco. Para ALMUERZO/CENA: usa libremente legumbres, tofu, tempeh, seitán en preparaciones sustanciosas.",
     ],
     banned: [
       "carne", "ternera", "cerdo", "pollo", "pavo", "cordero", "conejo",
@@ -204,6 +205,7 @@ export const DIETARY_PROFILES: readonly DietaryProfileMeta[] = [
       "NO uses ningún producto de origen animal: carne, pescado, mariscos, huevos, lácteos (leche, queso, yogur, mantequilla, nata), miel, gelatina.",
       "Usa proteínas vegetales (tofu, tempeh, seitán, legumbres), leches vegetales (avena, soja, almendra), quesos veganos y levadura nutricional.",
       "Las recetas deben ser explícitamente veganas y saciantes, con proteína suficiente.",
+      "CONTEXTO DE COMIDA: respeta el momento del día. Para DESAYUNO usa yogur vegetal, leches vegetales, granola, fruta, frutos secos, crema de cacahuete, pan con aguacate, gachas de avena DULCES con leche vegetal y fruta — EVITA tofu/seitán/tempeh salteados. Para MERIENDA: yogur vegetal, fruta, frutos secos, hummus pequeño. Para ALMUERZO/CENA: usa libremente tofu, tempeh, seitán y legumbres en preparaciones sustanciosas.",
     ],
     banned: [
       "carne", "ternera", "cerdo", "pollo", "pavo", "cordero", "conejo",
