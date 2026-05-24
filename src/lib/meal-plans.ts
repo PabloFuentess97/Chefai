@@ -176,7 +176,8 @@ ${appliancesList.map((a) => `- ${a.label}: ${a.instruction}`).join("\n")}`
 
   const avoidLine =
     input.avoidTitles && input.avoidTitles.length > 0
-      ? `AVOID_TITLES (recetas recientes que NO debes repetir ni imitar): ${JSON.stringify(input.avoidTitles.slice(0, 20))}`
+      ? `AVOID_TITLES (recetas recientes y otros slots del MISMO día que NO debes repetir ni imitar): ${JSON.stringify(input.avoidTitles.slice(0, 20))}
+REGLA DE VARIEDAD: si alguna de las recetas en AVOID_TITLES usa una técnica o ingrediente principal (ej. tortilla, revuelto, ensalada, pasta, arroz, sopa, bowl, sandwich, smoothie, tostada), TU receta debe usar una técnica COMPLETAMENTE DIFERENTE. No vale "tortilla de claras" si ya hay "tortilla de verduras", ni "ensalada de quinoa" si ya hay "ensalada de garbanzos". Cambia el tipo de plato.`
       : "";
 
   // Hard rules for the specific meal type (what IS and ISN'T a breakfast,

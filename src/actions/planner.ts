@@ -206,6 +206,11 @@ export async function createMealPlanAction(
   // Track recipe IDs already used in THIS plan (to avoid intra-plan dupes)
   const usedIds = new Set<string>();
 
+  // Titles already generated within the same day's loop. Resets per day
+  // so breakfast → lunch → snack → dinner each know what's already on
+  // the table and avoid producing four tortillas in a row.
+  let sameDayTitles: string[] = [];
+
   const buildSlotInput = (s: Slot): SlotInput => ({
     slot: s.slot,
     goal: data.goal ?? null,
@@ -218,7 +223,10 @@ export async function createMealPlanAction(
     appliances: data.appliances,
     servings: data.servings,
     excludeRecipeIds: [...usedIds, ...recentRecipeIds],
-    avoidTitles: recentTitles,
+    // Day-level AVOID list: prior slots of THIS day first (most valuable
+    // for variety), then recent history. The prompt builder caps the
+    // list at 20 entries.
+    avoidTitles: [...sameDayTitles, ...recentTitles],
   });
 
   // Resolve all slots (reuse first, generate when needed). Concurrency cap.
@@ -238,13 +246,18 @@ export async function createMealPlanAction(
 
   const resolvedAll: Resolved[] = [];
 
-  // Group by day so concurrency doesn't shuffle the variety check
+  // Sequential per-day loop so each slot's AVOID list contains the titles
+  // generated for prior slots THE SAME day. Costs ~3× wall time per day
+  // (4 sequential AI calls vs 4 parallel) but kills the "every slot is a
+  // tortilla" failure mode the IA falls into when slots can't see each
+  // other. Across-day boundaries we still run sequentially because the
+  // outer loop is sequential anyway.
   for (let d = 0; d < days; d++) {
     const daySlots = slots.filter((s) => s.dayIndex === d);
-    // 4 slots per day -> can run in parallel
-    const day = await mapWithConcurrency(daySlots, 4, async (s) => {
+    sameDayTitles = []; // reset for each new day
+
+    for (const s of daySlots) {
       try {
-        // Decrement budget atomically (best-effort) before the slot tries an image.
         let useImage = false;
         if (imageBudget.remaining > 0) {
           imageBudget.remaining -= 1;
@@ -257,6 +270,20 @@ export async function createMealPlanAction(
           imageQuality,
         });
         usedIds.add(r.recipeId);
+
+        // Look up the title we just generated/reused to feed it into the
+        // next slot's AVOID list. Best-effort — if the lookup fails the
+        // worst case is the next slot might repeat a technique.
+        try {
+          const persisted = await prisma.recipe.findUnique({
+            where: { id: r.recipeId },
+            select: { title: true },
+          });
+          if (persisted?.title) sameDayTitles.push(persisted.title);
+        } catch {
+          /* ignore — variety check is best-effort */
+        }
+
         if (r.source === "generated") {
           generated += 1;
           totalTokens += r.tokensUsed;
@@ -264,18 +291,16 @@ export async function createMealPlanAction(
         } else {
           reused += 1;
         }
-        return {
+        resolvedAll.push({
           dayIndex: s.dayIndex,
           slot: s.slot,
           recipeId: r.recipeId,
           source: r.source,
-        } satisfies Resolved;
+        });
       } catch (e) {
         logger.error({ err: e, slot: s }, "slot resolve failed");
-        return null;
       }
-    });
-    for (const r of day) if (r) resolvedAll.push(r);
+    }
   }
 
   if (resolvedAll.length < totalSlots * 0.5) {
