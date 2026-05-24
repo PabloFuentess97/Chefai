@@ -35,7 +35,30 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     baseCalMin: 300,
     baseCalMax: 450,
     promptRules:
-      "DESAYUNO ESPAÑOL/EUROPEO típico que un adulto comería a primera hora de la mañana. CONTEXTO CULTURAL OBLIGATORIO: salvo que el usuario haya pedido explícitamente cocina ASIÁTICA en el campo COCINA, el desayuno DEBE encajar en la tradición mediterránea/europea/americana. PROHIBIDO usar adjetivos culturales NO españoles/europeos en el título: nada de 'al estilo japonés', 'al estilo asiático', 'al estilo oriental', 'al estilo coreano', 'al estilo tailandés', 'fusion', 'estilo zen' o similares — si el usuario no eligió esa cocina, no la metas por la puerta de atrás. PERMITIDO: tostadas con tomate y aceite, tostadas con aguacate, tostadas con queso fresco, tortitas/pancakes con fruta, crepes dulces, gachas/porridge de avena CON LECHE Y FRUTA (NUNCA con tofu, soja salada, ni verduras saladas), granola con yogur, yogur natural con fruta y miel, smoothie/batido de fruta con avena/proteína, huevos revueltos, huevos pochados, tortilla francesa SIMPLE (huevo entero, sin claras separadas, con un solo relleno ligero como queso o jamón), huevos benedict, sandwich de pavo y queso, mini bocadillo de jamón, café con leche, té, zumos naturales, bizcocho casero, magdalena, muffin de plátano, croissant, fruta fresca con frutos secos, queso fresco con miel, requesón con mermelada, tortita de arroz con crema de cacahuete y plátano, pudding de chía con fruta, overnight oats. PROHIBIDO ABSOLUTAMENTE: tortillas de claras solas (eso es comida de gym, no desayuno típico), tortillas con múltiples verduras tipo frittata grande, gachas saladas asiáticas tipo congee, arroz hervido con tofu, tofu salteado, salsa de soja, miso, ramen, pad thai, rollitos de primavera, dim sum salado, currys, estofados, guisos, lasañas, pasta con salsa pesada, paellas, pollo entero al horno, costillas BBQ, hamburguesas completas, lentejas, fabada, sopas de comida principal, platos de cuchara, bowls de comida tipo poke con arroz y tofu, ensaladas grandes con proteína. Si el plato suena a almuerzo, cena o comida exótica salada con tofu, está MAL. Cuando el usuario es vegetariano/vegano, usa proteínas vegetales SUAVES en contexto desayuno: yogur de soja, queso vegano, mantequilla de cacahuete, granola con frutos secos — NO tofu salado ni seitán.",
+      "DESAYUNO ESPAÑOL TÍPICO. CONTEXTO POR DEFECTO: si el campo COCINA del prompt está vacío, dice 'any', 'cualquiera' o no es una cocina extranjera explícita, DEBES generar un desayuno que un español adulto comería a primera hora. El plato DEBE parecerse a UNO DE ESTOS 20 EJEMPLOS REALES (úsalos como plantilla, varía cantidades y acompañamientos pero mantén el formato):\n" +
+      "1. Tostadas de pan con tomate triturado, aceite de oliva virgen extra y sal\n" +
+      "2. Tostadas con jamón serrano y aceite de oliva\n" +
+      "3. Tostadas con queso fresco y un hilo de miel\n" +
+      "4. Tostadas con aguacate, tomate cherry y sal en escamas\n" +
+      "5. Tostadas con mantequilla y mermelada de fresa o naranja\n" +
+      "6. Yogur natural con muesli, fruta fresca y miel\n" +
+      "7. Bol de granola casera con leche (o leche vegetal) y fruta de temporada\n" +
+      "8. Tortitas/pancakes esponjosos con plátano y sirope\n" +
+      "9. Crepes dulces con crema de cacahuete y plátano\n" +
+      "10. Gachas/porridge de avena DULCES con leche, canela y manzana o plátano\n" +
+      "11. Smoothie/batido de frutos rojos con avena y leche\n" +
+      "12. Bowl de yogur con plátano, semillas de chía y nueces\n" +
+      "13. Pudding de chía con leche vegetal y mango\n" +
+      "14. Overnight oats con leche, miel y arándanos\n" +
+      "15. Huevos revueltos con una tostada de pan integral y tomate cherry\n" +
+      "16. Huevos pochados sobre tostada con aguacate (benedict simplificado)\n" +
+      "17. Tortilla francesa SIMPLE (2 huevos enteros, sal) con una tostada\n" +
+      "18. Magdalena o muffin casero con café con leche\n" +
+      "19. Bizcocho casero de yogur o limón con un café\n" +
+      "20. Bocadillo pequeño de jamón y queso en pan de barra, con zumo de naranja\n\n" +
+      "FORMATO obligatorio del TÍTULO: español natural y simple ('Tostadas con aguacate y huevo', 'Bowl de yogur con granola y fruta', 'Tortitas de plátano con miel'). PROHIBIDO usar adjetivos culturales no españoles ('al estilo japonés', 'estilo oriental', 'fusion', 'coreano', 'tailandés', 'zen') salvo que la cocina pedida sea explícitamente esa.\n\n" +
+      "PROHIBIDO ABSOLUTAMENTE: tortilla de CLARAS solas (es comida de gym, no desayuno), tortillas tipo frittata grandes con muchas verduras (eso es comida), congee, arroz salado, tofu salteado, salsa de soja, miso, ramen, pad thai, currys, estofados, guisos, lasañas, paellas, pollo o pescado como plato principal con guarnición, hamburguesas, lentejas, fabada, ensaladas grandes, bowls de quinoa o arroz salados con proteína cocinada (tipo poke). Si el plato suena a comida o cena, está MAL.\n\n" +
+      "VEGETARIANO/VEGANO: usa yogur (vegetal si vegano), queso (vegano si vegano), mantequilla de cacahuete, granola, frutos secos, leches vegetales, fruta. NO uses tofu, tempeh ni seitán en desayuno.",
   },
   {
     id: "lunch",
@@ -44,7 +67,7 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     baseCalMin: 450,
     baseCalMax: 650,
     promptRules:
-      "ALMUERZO como comida principal del mediodía. Plato completo y saciante: arroces, pastas, legumbres, carnes/pescados a la plancha o al horno con guarnición, ensaladas grandes con proteína, bowls completos, guisos, currys, paellas, lasañas. Debe ser un plato sustancial, no un snack ni un picoteo.",
+      "ALMUERZO como comida principal del mediodía en contexto español: paellas, fideuá, arroz con pollo o verduras, lentejas o garbanzos guisados, cocido, ensalada mixta o ensaladilla, espaguetis a la boloñesa o carbonara, pollo asado con patatas, pescado al horno con verdura, merluza a la plancha, tortilla de patatas con ensalada, lubina al horno, gazpacho con guarnición de bocadillo, sopa de pescado con pan, lomo a la plancha con verdura, hamburguesa casera con ensalada. Debe ser sustancial y saciante. Si COCINA es asiática, italiana, mexicana, etc., adapta a esa tradición.",
   },
   {
     id: "snack",
@@ -53,7 +76,24 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     baseCalMin: 150,
     baseCalMax: 300,
     promptRules:
-      "MERIENDA: snack ligero a media tarde (~17-18h). DEBE SER ALGO QUE COMES CON LA MANO O CON UNA CUCHARA, sin platos elaborados, sin cocción larga. PERMITIDO: fruta fresca con yogur, frutos secos, hummus con palitos de zanahoria/apio, tostada pequeña con queso fresco y miel, mini-bocadillo de pavo, smoothie/batido de fruta, barrita energética casera, palomitas, queso curado con membrillo, galletas integrales con crema de cacahuete, gelatina de fruta, bizcocho de plátano (porción pequeña), tostada con aguacate (porción), dátiles rellenos de almendra, tortitas de arroz con crema de cacahuete, requesón con mermelada, pudding de chía pequeño, manzana con almendras laminadas, plátano con chocolate negro. CARACTERÍSTICAS OBLIGATORIAS: 150-300 kcal totales, MUY rápido de preparar (≤10 min), preferiblemente sin sartén ni horno, NO requiere cocina compleja. PROHIBIDO ABSOLUTAMENTE: tortillas (de claras o enteras), revueltos, frittatas, omelettes — todo lo que requiera sartén con varios ingredientes es comida, no merienda. Tampoco pollo al horno, pescado a la plancha, guisos, pastas, arroces cocinados, lasañas, hamburguesas, ensaladas grandes con proteína cocinada, bowls de quinoa/arroz, sopas de comida, paellas. Si parece una comida principal en miniatura, está MAL — debe parecer un snack/picoteo.",
+      "MERIENDA ESPAÑOLA TÍPICA, snack ligero de media tarde (~17-18h). El plato DEBE parecerse a UNO DE ESTOS 15 EJEMPLOS REALES (úsalos como plantilla):\n" +
+      "1. Una manzana con un puñadito de almendras o nueces\n" +
+      "2. Plátano con crema de cacahuete\n" +
+      "3. Yogur natural con miel y nueces troceadas\n" +
+      "4. Mini-bocadillo de jamón o pavo en pan de barra\n" +
+      "5. Tostada pequeña con queso fresco y mermelada\n" +
+      "6. Galletas integrales con un vaso de leche o leche vegetal\n" +
+      "7. Magdalena o trozo pequeño de bizcocho casero con café\n" +
+      "8. Macedonia de fruta de temporada\n" +
+      "9. Batido natural de fruta (plátano + frutos rojos + leche)\n" +
+      "10. Queso curado con membrillo y picos de pan\n" +
+      "11. Hummus con palitos de zanahoria y apio\n" +
+      "12. Dátiles rellenos de almendra (3 unidades)\n" +
+      "13. Tortita de arroz con crema de cacahuete y plátano en rodajas\n" +
+      "14. Requesón con mermelada y un par de nueces\n" +
+      "15. Pudding de chía pequeño con frutos rojos\n\n" +
+      "CARACTERÍSTICAS OBLIGATORIAS: 150-300 kcal totales, ≤10 min de preparación, preferiblemente sin sartén ni horno, comestible casi tal cual. Si el usuario es vegetariano/vegano usa la versión vegetal del lácteo o del embutido pero MANTÉN el formato de snack.\n\n" +
+      "PROHIBIDO ABSOLUTAMENTE: tortillas (de claras o enteras), revueltos, frittatas, omelettes (todo lo que requiera sartén con varios ingredientes es comida, no merienda). Tampoco pollo al horno, pescado a la plancha, guisos, pastas, arroces cocinados, lasañas, hamburguesas, ensaladas grandes con proteína cocinada, bowls de quinoa/arroz, sopas de comida, paellas. Si parece una comida en miniatura, está MAL.",
   },
   {
     id: "dinner",
@@ -62,7 +102,7 @@ export const MEAL_TYPES: readonly MealMeta[] = [
     baseCalMin: 400,
     baseCalMax: 600,
     promptRules:
-      "CENA ligera para final del día. PERMITIDO: pescados blancos a la plancha o al horno, tortillas, revueltos de huevo con verdura, cremas y sopas ligeras, ensaladas templadas con proteína magra, verduras al horno con queso, hamburguesas de pescado/pollo, sandwiches templados, wraps. EVITAR fritos pesados, salsas grasas excesivas, exceso de hidratos refinados, legumbres en grandes cantidades. Debe digerirse bien antes de dormir, ser razonablemente rápida (≤30-40 min) y saciante sin ser pesada.",
+      "CENA ESPAÑOLA TÍPICA, ligera, para final del día. Buenos ejemplos: pescado blanco (merluza, bacalao, lubina, dorada) a la plancha o al horno con verduras, salmón al horno con espárragos, tortilla francesa con ensalada, revuelto de setas o gambas, crema de calabacín o verduras con tropezones, sopa de pescado, ensalada templada de pollo o atún, verduras al horno con queso de cabra gratinado, brochetas de pollo con verdura, sandwich vegetal templado, wrap de pollo y aguacate, gazpacho con guarnición ligera, pisto con huevo, hamburguesa de pescado o pavo con ensalada. EVITAR fritos pesados, salsas grasas excesivas, exceso de hidratos refinados, legumbres en grandes cantidades. Debe digerirse bien antes de dormir y ser razonablemente rápida (≤30-40 min).",
   },
 ] as const;
 
